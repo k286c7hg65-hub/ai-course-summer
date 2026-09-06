@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>图灵裁判 · AI 夏令营 第1课</title>
+<style>
+/* ============================================================
+   图灵裁判游戏：你能分辨出谁是人类吗？
+   目标受众：牧之(14岁) + 牧童(11岁) | 电脑+iPad双设备
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ── 设计令牌（沿用现有页面深色主题） ── */
+:root{
+  --bg:#0f0f1a;
+  --panel:#1a1a2e;
+  --panel2:#16213e;
+  --gold:#f0a500;
+  --gold2:#ffb830;
+  --text:#e0e0e0;
+  --text2:#a0a0b0;
+  --text3:#6a6a7e;
+  --red:#ff4757;
+  --green:#2ed573;
+  /* 聊天气泡色调（揭晓后使用） */
+  --ai-bubble-bg:#253548;
+  --human-bubble-bg:#3d2e1a;
+  --neutral-bubble-bg:#1e1e36;
+  --ai-accent:#5b8cbc;
+  --human-accent:#e8a840;
+  /* 布局 */
+  --header-h:56px;
+  --input-h:64px;
+  --judge-w:180px;
+  --border:#2a2a3e;
+  --radius:12px;
+  --radius-sm:8px;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  height:100vh; height:100dvh;
+  width:100vw; overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+/* ── 应用容器 ── */
+#app{
+  display:flex; flex-direction:column;
+  height:100%; width:100%;
+}
+
+/* ── 顶部栏 ── */
+#header{
+  height:var(--header-h);
+  min-height:var(--header-h);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 16px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  z-index:50;
+  gap:12px;
+}
+#header .logo{
+  font-size:18px; font-weight:800; color:var(--gold);
+  white-space:nowrap;
+}
+#header .logo span{color:var(--text2);font-weight:400;font-size:13px;margin-left:4px}
+
+/* 场景选择器 */
+#scenario-nav{
+  display:flex; gap:6px; flex-wrap:wrap;
+}
+.scenario-btn{
+  background:var(--panel2);
+  color:var(--text2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:6px 14px;
+  font-size:13px; font-weight:600;
+  cursor:pointer;
+  transition:all 0.25s;
+  white-space:nowrap;
+  min-height:36px;
+}
+.scenario-btn:hover{ border-color:var(--gold);color:var(--text); }
+.scenario-btn.active{
+  background:var(--gold);
+  color:var(--bg);
+  border-color:var(--gold);
+  font-weight:700;
+}
+
+/* ── 主内容区 ── */
+#main-area{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ── 聊天面板容器 ── */
+#chat-wrapper{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+  position:relative;
+}
+
+/* 分屏分隔线 */
+#split-divider{
+  width:2px;
+  background:var(--border);
+  flex-shrink:0;
+  position:relative;
+  z-index:2;
+}
+#split-divider::after{
+  content:'VS';
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  background:var(--bg);
+  color:var(--gold);
+  font-weight:900; font-size:11px;
+  padding:6px 4px;
+  border-radius:4px;
+  border:1px solid var(--border);
+}
+
+/* ── 单个聊天面板 ── */
+.chat-panel{
+  flex:1;
+  display:flex; flex-direction:column;
+  min-width:0;
+  background:var(--bg);
+  position:relative;
+  transition:background 0.6s;
+}
+/* 揭晓后的面板着色 */
+.chat-panel.revealed-human{ background:#1a1610; }
+.chat-panel.revealed-ai{ background:#101620; }
+
+/* 面板头部 */
+.panel-header{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  min-height:52px;
+  flex-shrink:0;
+}
+.panel-header .avatar{
+  width:36px; height:36px;
+  border-radius:50%;
+  background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.panel-header .name{
+  font-weight:700; font-size:15px;
+  color:var(--text);
+}
+.panel-header .label{
+  font-size:11px; color:var(--text3);
+  margin-left:4px;
+}
+/* 揭晓后头像变色 */
+.panel-header.revealed-human .avatar{
+  background:linear-gradient(135deg, #f0a500 0%, #ff6b35 100%);
+}
+.panel-header.revealed-ai .avatar{
+  background:linear-gradient(135deg, #4a90d9 0%, #5b6eae 100%);
+}
+
+/* 消息列表 */
+.messages-container{
+  flex:1;
+  overflow-y:auto;
+  padding:12px 14px;
+  display:flex; flex-direction:column;
+  gap:8px;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── 消息气泡 ── */
+.message{
+  display:flex; flex-direction:column;
+  max-width:90%;
+  animation:msgIn 0.3s ease-out;
+}
+@keyframes msgIn{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.message .sender-label{
+  font-size:10px; color:var(--text3);
+  margin-bottom:2px;
+  padding-left:4px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.message.you .sender-label{ color:var(--gold); }
+
+.message .bubble{
+  padding:10px 14px;
+  border-radius:var(--radius-sm);
+  font-size:14px; line-height:1.55;
+  word-break:break-word;
+  position:relative;
+}
+/* 中性气泡（游戏进行中） */
+.message .bubble.neutral{
+  background:var(--neutral-bubble-bg);
+  color:var(--text);
+}
+/* 揭晓后：人类侧气泡 */
+.message.revealed-human .bubble{
+  background:var(--human-bubble-bg);
+  border-left:3px solid var(--human-accent);
+  color:#f0d8a0;
+}
+/* 揭晓后：AI侧气泡 */
+.message.revealed-ai .bubble{
+  background:var(--ai-bubble-bg);
+  border-left:3px solid var(--ai-accent);
+  color:#c0d8f0;
+}
+/* 用户消息气泡 */
+.message.you .bubble{
+  background:rgba(240,165,0,0.12);
+  border-left:3px solid var(--gold);
+  color:var(--text);
+}
+
+/* 打字机光标 */
+.typing-cursor{
+  display:inline-block;
+  width:2px; height:1em;
+  background:var(--gold);
+  margin-left:2px;
+  animation:blink 0.7s step-end infinite;
+  vertical-align:text-bottom;
+}
+@keyframes blink{ 50%{opacity:0} }
+
+/* ── 判断面板 ── */
+#judge-panel{
+  width:var(--judge-w);
+  min-width:var(--judge-w);
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px 14px;
+  gap:14px;
+  z-index:10;
+  transition:all 0.4s;
+}
+#judge-panel.collapsed{ width:60px; min-width:60px; }
+#judge-panel.collapsed .judge-text{ display:none; }
+#judge-panel.collapsed .judge-btn.judge-full{ display:none; }
+
+.judge-label{
+  font-size:13px; color:var(--text2);
+  text-align:center;
+  font-weight:600;
+}
+.judge-btn{
+  display:flex; align-items:center; justify-content:center;
+  gap:6px;
+  width:100%;
+  padding:12px 10px;
+  border-radius:var(--radius-sm);
+  border:2px solid transparent;
+  font-size:13px; font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+  min-height:44px;
+  background:var(--panel2);
+  color:var(--text);
+  text-align:center;
+}
+.judge-btn:hover{ border-color:var(--gold); }
+.judge-btn.btn-a{ border-color:rgba(240,165,0,0.3); }
+.judge-btn.btn-b{ border-color:rgba(140,170,210,0.3); }
+.judge-btn.btn-a:hover{ border-color:var(--gold); background:rgba(240,165,0,0.1); }
+.judge-btn.btn-b:hover{ border-color:var(--ai-accent); background:rgba(90,140,190,0.1); }
+
+.judge-btn .emoji{ font-size:20px; }
+.judge-btn .btn-label{ font-size:12px; line-height:1.3; }
+
+/* ── 揭晓覆盖层 ── */
+#reveal-overlay{
+  position:fixed; top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.85);
+  z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.5s;
+}
+#reveal-overlay.show{ opacity:1; pointer-events:auto; }
+
+.reveal-card{
+  background:var(--panel);
+  border:2px solid var(--border);
+  border-radius:20px;
+  padding:32px 28px;
+  max-width:520px; width:90%;
+  text-align:center;
+  animation:revealPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes revealPop{ from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+
+.reveal-card .result-icon{ font-size:64px; margin-bottom:12px; animation:bounceIn 0.6s 0.3s both; }
+@keyframes bounceIn{ 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+
+.reveal-card .result-title{
+  font-size:24px; font-weight:900; margin-bottom:6px;
+}
+.reveal-card .result-title.correct{ color:var(--green); }
+.reveal-card .result-title.wrong{ color:var(--red); }
+
+.reveal-card .result-detail{
+  font-size:14px; color:var(--text2);
+  margin-bottom:20px; line-height:1.6;
+}
+.reveal-card .explanation{
+  text-align:left;
+  background:var(--bg);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:20px;
+}
+.reveal-card .explanation h4{
+  font-size:13px; color:var(--gold);
+  margin-bottom:8px;
+}
+.reveal-card .explanation .clue{
+  display:flex; align-items:flex-start; gap:8px;
+  font-size:13px; color:var(--text2);
+  margin-bottom:6px; line-height:1.5;
+}
+.reveal-card .explanation .clue .dot{
+  width:8px; height:8px;
+  border-radius:50%;
+  margin-top:6px; flex-shrink:0;
+}
+.reveal-card .explanation .clue .dot.human-dot{ background:var(--human-accent); }
+.reveal-card .explanation .clue .dot.ai-dot{ background:var(--ai-accent); }
+
+.reveal-card .turing-background{
+  margin-bottom:16px;
+  text-align:left;
+}
+.reveal-card .turing-background details{
+  background:var(--bg);
+  border-radius:var(--radius);
+  padding:8px 16px;
+  cursor:pointer;
+}
+.reveal-card .turing-background summary{
+  font-size:13px; font-weight:700; color:var(--gold);
+  padding:6px 0;
+  cursor:pointer;
+  user-select:none;
+}
+.reveal-card .turing-background .turing-content{
+  padding:10px 0 6px;
+  border-top:1px solid var(--border);
+  margin-top:6px;
+}
+.reveal-card .turing-background .turing-content p{
+  font-size:13px; color:var(--text2);
+  line-height:1.7;
+  margin-bottom:10px;
+}
+.reveal-card .turing-background .turing-content p:last-child{
+  margin-bottom:0;
+}
+
+.reveal-actions{
+  display:flex; gap:10px; flex-wrap:wrap;
+  justify-content:center;
+}
+.reveal-actions button{
+  padding:10px 20px;
+  border-radius:20px;
+  border:none;
+  font-size:14px; font-weight:700;
+  cursor:pointer;
+  min-height:44px;
+  transition:all 0.2s;
+}
+.btn-replay{ background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+.btn-replay:hover{ border-color:var(--gold); }
+.btn-next{ background:var(--gold); color:var(--bg); }
+.btn-next:hover{ background:var(--gold2); }
+
+/* ── 底部输入栏 ── */
+#input-bar{
+  height:var(--input-h);
+  min-height:var(--input-h);
+  display:flex; align-items:center;
+  gap:10px;
+  padding:10px 16px;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  z-index:50;
+}
+#input-bar input{
+  flex:1;
+  height:44px;
+  padding:0 16px;
+  border-radius:22px;
+  border:1px solid var(--border);
+  background:var(--input-bg, #12122a);
+  color:var(--text);
+  font-size:14px;
+  font-family:inherit;
+  outline:none;
+  transition:border-color 0.2s;
+  min-width:0;
+}
+#input-bar input:focus{ border-color:var(--gold); }
+#input-bar input::placeholder{ color:var(--text3); }
+#input-bar button{
+  width:44px; height:44px;
+  border-radius:50%;
+  border:none;
+  background:var(--gold);
+  color:var(--bg);
+  font-size:20px;
+  cursor:pointer;
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.2s;
+  font-weight:700;
+}
+#input-bar button:hover{ background:var(--gold2); transform:scale(1.05); }
+#input-bar button:active{ transform:scale(0.95); }
+#input-bar button:disabled{
+  background:var(--border);
+  color:var(--text3);
+  cursor:not-allowed;
+  transform:none;
+}
+#input-bar input:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+  border-color:transparent;
+}
+
+/* 提示文字 */
+#input-hint{
+  font-size:11px; color:var(--text3);
+  text-align:center;
+  padding:4px;
+  flex-shrink:0;
+}
+
+/* ── 空状态 ── */
+.empty-state{
+  flex:1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  color:var(--text3);
+  text-align:center;
+  padding:20px;
+}
+.empty-state .big-emoji{ font-size:48px; margin-bottom:12px; }
+.empty-state h3{ font-size:16px; margin-bottom:6px; color:var(--text2); }
+.empty-state p{ font-size:13px; line-height:1.6; max-width:280px; }
+
+/* ── 响应式：iPad & 手机 ── */
+@media (max-width:768px){
+  :root{
+    --judge-w:100%;
+    --header-h:52px;
+    --input-h:60px;
+  }
+  #header{
+    padding:0 10px; gap:6px;
+  }
+  #header .logo{ font-size:15px; }
+  #header .logo span{ font-size:11px; }
+  .scenario-btn{ font-size:11px; padding:5px 10px; min-height:32px; }
+
+  /* 垂直分屏：上下排列 */
+  #main-area{ flex-direction:column; }
+  #chat-wrapper{ flex-direction:column; }
+  #split-divider{
+    width:100%; height:2px;
+  }
+  #split-divider::after{
+    content:'🆚';
+    font-size:14px;
+    padding:2px 8px;
+  }
+
+  .chat-panel{ flex:1; min-height:0; }
+
+  /* 判断面板移到下方 */
+  #judge-panel{
+    width:100%; min-width:unset;
+    flex-direction:row;
+    padding:10px 12px;
+    gap:8px;
+    border-left:none;
+    border-top:1px solid var(--border);
+    flex-shrink:0;
+    max-height:100px;
+  }
+  #judge-panel.collapsed{ height:48px; min-height:48px; }
+  .judge-label{ display:none; }
+  .judge-btn{ flex:1; font-size:12px; padding:10px 8px; }
+
+  .reveal-card{ padding:24px 18px; }
+  .reveal-card .result-icon{ font-size:48px; }
+  .reveal-card .result-title{ font-size:20px; }
+}
+
+@media (max-width:480px){
+  :root{ --header-h:48px; --input-h:56px; }
+  #header .logo span{ display:none; }
+  .scenario-btn{ font-size:10px; padding:4px 8px; min-height:32px; }
+  .message .bubble{ font-size:13px; padding:8px 12px; }
+  .panel-header{ padding:8px 10px; min-height:44px; }
+  .panel-header .avatar{ width:30px; height:30px; font-size:16px; }
+  .panel-header .name{ font-size:14px; }
+}
+
+/* ── 文本选择（聊天内容允许选择以方便阅读） ── */
+.messages-container{ user-select:text; -webkit-user-select:text; }
+.messages-container .bubble{ user-select:text; -webkit-user-select:text; }
+
+/* ── 辅助类 ── */
+.hidden{ display:none !important; }
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><span style="color:#444;">◀ 上一课</span><span style="color:#3a3a55;">·</span><a href="lesson2-timeline.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<div id="app">
+  <!-- 顶部栏 -->
+  <header id="header">
+    <div class="logo">🦞 图灵裁判<span>· AI 夏令营 第1课</span></div>
+    <nav id="scenario-nav">
+      <button class="scenario-btn active" data-scene="1">🎮 游戏攻略</button>
+      <button class="scenario-btn" data-scene="2">🔬 科学问答</button>
+      <button class="scenario-btn" data-scene="3">😂 讲笑话</button>
+      <button class="scenario-btn" data-scene="4">🎯 真人挑战</button>
+    </nav>
+    <div id="real-key-bar" style="display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.07);border-bottom:1px solid rgba(245,158,11,0.25);flex-wrap:wrap;">
+      <span style="font-size:0.78rem;color:var(--amber, #fbbf24);white-space:nowrap;">🎯 真人模式：B 是真正的 DeepSeek AI，来试试能不能分辨</span>
+      <input type="password" id="real-key" placeholder="DeepSeek API Key（sk-...）" style="flex:1;min-width:160px;padding:6px 10px;border-radius:8px;border:1px solid var(--border,#333);background:rgba(255,255,255,0.06);color:#fff;font-size:0.8rem;">
+      <span style="font-size:0.7rem;color:#8888a8;">Key 只存本机浏览器，用完刷新即清除</span>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <div id="main-area">
+    <!-- 聊天区域（双栏） -->
+    <div id="chat-wrapper">
+      <!-- 玩家A -->
+      <div class="chat-panel" id="panel-a">
+        <div class="panel-header" id="header-a">
+          <div class="avatar">🤖</div>
+          <div>
+            <div class="name">玩家 A</div>
+            <div class="label">聊天对象 1</div>
+          </div>
+        </div>
+        <div class="messages-container" id="msgs-a">
+          <div class="empty-state" id="empty-a">
+            <div class="big-emoji">💬</div>
+            <h3>选择场景开始游戏</h3>
+            <p>上方选一个场景，然后观察两位玩家的对话，判断谁是真人！</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div id="split-divider"></div>
+
+      <!-- 玩家B -->
+      <div class="chat-panel" id="panel-b">
+        <div class="panel-header" id="header-b">
+          <div class="avatar">🤖</div>
+          <div>
+            <div class="name">玩家 B</div>
+            <div class="label">聊天对象 2</div>
+          </div>
+        </div>
+        <div class="messages-container" id="msgs-b">
+          <div class="empty-state" id="empty-b">
+            <div class="big-emoji">💬</div>
+            <h3>选择场景开始游戏</h3>
+            <p>上方选一个场景，然后观察两位玩家的对话，判断谁是真人！</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 判断面板 -->
+    <div id="judge-panel">
+      <div class="judge-label judge-text">👆 谁是人类？</div>
+      <button class="judge-btn btn-a judge-full" id="btn-judge-a">
+        <span class="emoji">🙋</span>
+        <span>玩家A<br>是人类</span>
+      </button>
+      <button class="judge-btn btn-b judge-full" id="btn-judge-b">
+        <span class="emoji">🙋</span>
+        <span>玩家B<br>是人类</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 输入栏 -->
+  <div id="input-hint">💡 你也可以加入对话！试试问他们问题</div>
+  <div id="input-bar">
+    <input type="text" id="chat-input" placeholder="输入消息，跟两边聊聊..." maxlength="200">
+    <button id="btn-send" title="发送">➤</button>
+  </div>
+
+  <!-- 揭晓覆盖层 -->
+  <div id="reveal-overlay">
+    <div class="reveal-card" id="reveal-card"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   图灵裁判游戏：核心逻辑
+   ============================================================ */
+
+// ── DOM 引用 ──
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const panelA = $('#panel-a');
+const panelB = $('#panel-b');
+const msgsA = $('#msgs-a');
+const msgsB = $('#msgs-b');
+let emptyA = $('#empty-a');
+let emptyB = $('#empty-b');
+const headerA = $('#header-a');
+const headerB = $('#header-b');
+const chatInput = $('#chat-input');
+const btnSend = $('#btn-send');
+const revealOverlay = $('#reveal-overlay');
+const revealCard = $('#reveal-card');
+const judgePanel = $('#judge-panel');
+const inputHint = $('#input-hint');
+
+// ── 游戏状态 ──
+let currentScene = 1;
+let currentTopic = '';
+let isPlaying = false;        // 自动对话进行中
+let isTyping = false;         // 打字机动画进行中
+let canJudge = false;
+let judged = false;
+let humanSide = null;         // 'a' 或 'b'
+let userGuess = null;
+let autoPlayTimer = null;
+let typewriterTimer = null;
+let messageQueues = { a: [], b: [] };
+let conversationDone = false; // 预设对话播完
+let userMsgCount = 0;         // 用户消息计数（防重复fallback）
+
+// ── 场景数据 ──
+const SCENARIOS = {
+  1: {
+    topic: '王者荣耀怎么上王者？',
+    question: '我最近在玩王者荣耀，想上王者段位，有什么建议吗？',
+    human: [
+      '哇这个问题！我太有发言权了 😂',
+      '我卡在星耀二卡了整整两周，每天晚上打晋级赛，连续三次都失败，心态都崩了',
+      '最崩溃的是有次我拿了16个人头，结果队友吵起来了直接挂机……气得我把手机扔床上',
+      '后来我学聪明了：与其指望队友，不如自己carry。我练了打野位，澜和镜，这两个切后排特别快',
+      '还有一个秘诀：连输两把就停下来！出去喝杯水、看看窗外，回来手感反而更好。真的，心态比技术重要',
+      '现在王者20星啦！你打到什么段位了呀？'
+    ],
+    ai: [
+      '王者荣耀晋升王者段位需掌握以下要点：',
+      '一、段位体系：青铜→白银→黄金→铂金→钻石→星耀→王者，共7个大段位。每个大段位内含若干小段位。',
+      '二、英雄池：建议精通2个位置的2-3个英雄。当前赛季T0级打野：澜、镜、裴擒虎。数据来源：官方胜率统计。',
+      '三、核心战术：（1）兵线运营：清理兵线是获取经济的主要方式；（2）视野控制：在关键位置放置眼位获取敌方信息；（3）团战意识：把握开团时机，避免以少打多。',
+      '四、统计参考：王者段位约占全服活跃玩家的5%-8%。建议将胜率维持在52%以上以稳定上分。',
+      '请问需要我详细介绍特定英雄的出装顺序吗？'
+    ],
+    humanFallbacks: [
+      '哈哈你也玩吗？我之前打排位还遇到过职业选手，被虐得可惨了 😂',
+      '对对对！打野位真的能carry，你要是刚开始玩建议先练赵云，操作简单又强势',
+      '嘿嘿，其实游戏最重要的是开心啦，段位只是数字！你说对吧？',
+      '问我问我！虽然我不是大神但踩过的坑可不少 😅'
+    ],
+    aiFallbacks: [
+      '感谢您的提问。建议参考当前赛季的官方数据报告以获得最优英雄选择。',
+      '关于游戏策略，团队协作是核心要素。根据统计，有效沟通可将胜率提升15%-20%。',
+      '如果您想了解特定位置的打法，请告知，我将为您提供标准化的战术分析。',
+      '这个问题的答案可以从多维度进行分析。您希望我从哪个角度切入？'
+    ],
+    reveal: {
+      human: {
+        title: '人类线索',
+        clues: [
+          '用了emoji表达情绪（😂）',
+          '分享了具体个人经历（"卡星耀二两周"）',
+          '语言很口语化（"心态都崩了"）',
+          '主动反问，想了解你的情况',
+          '承认失败和不完美'
+        ]
+      },
+      ai: {
+        title: 'AI 线索',
+        clues: [
+          '用编号列表组织信息（一、二、三、四）',
+          '引用精确数字（5%-8%，52%）',
+          '语言正式客观，没有情绪',
+          '用"您"的敬语',
+          '结尾标准化提问（"请问需要……吗？"）'
+        ]
+      }
+    }
+  },
+  2: {
+    topic: '为什么天空是蓝色的？',
+    question: '我一直想知道，为什么天空是蓝色的呢？',
+    human: [
+      '哈哈这个问题我小时候也问过我爸！',
+      '想象一下哈：阳光看着是白的对不对？但其实白色的光里面藏着所有颜色，就像彩虹一样 🌈',
+      '阳光穿过大气层的时候，空气里的小颗粒会像弹弹球一样，把蓝色的光"弹"得到处都是，红色的光就直直穿过去了',
+      '最有意思的是：我在游泳馆里发现一个超像的现象！从水下往上看，水面蓝蓝的，但你跳出来看水明明是透明的！',
+      '你有没有在游泳池里注意过这个？所以天空蓝不是因为天上有水啦，是因为光在空气里被"弹"来"弹"去 😄'
+    ],
+    ai: [
+      '天空呈现蓝色的现象由瑞利散射（Rayleigh Scattering）解释。',
+      '太阳发出的白光包含可见光谱中的所有颜色。当阳光穿越地球大气层时，与氮气（N₂）和氧气（O₂）分子发生弹性散射。',
+      '瑞利散射定律：散射光强度与入射光波长的四次方成反比。数学表达为 I ∝ 1/λ⁴。',
+      '蓝光波长约450纳米，红光波长约700纳米。代入公式：(700/450)⁴ ≈ 5.8。即蓝光的散射强度约为红光的5.8倍。',
+      '因此，当我们仰望天空时，看到的是被大量散射的蓝光。补充：日落时天空呈红色，因为阳光斜穿大气层，蓝光已在前方被散射殆尽，仅剩长波长的红光到达观测者。'
+    ],
+    humanFallbacks: [
+      '对吧！科学其实很有趣的，生活中到处都是好玩的物理现象 🤓',
+      '其实我还有个更简单的理解方式：你就想象空气是一碗汤，蓝光是被搅得最开的那个 ✨',
+      '说实话我也不完全懂，但我爸以前拿手电筒和一碗水给我演示过，超酷！'
+    ],
+    aiFallbacks: [
+      '瑞利散射不仅解释天空颜色，也适用于其他电磁波散射场景，例如雷达信号的大气衰减。',
+      '如果您对光学现象感兴趣，还可以了解"丁达尔效应"：光束在胶体中可见的现象。',
+      '需要了解为什么云是白色的吗？这涉及米氏散射（Mie Scattering），与瑞利散射的原理不同。'
+    ],
+    reveal: {
+      human: {
+        title: '人类线索',
+        clues: [
+          '用生活化的比喻（"弹弹球""彩虹"）',
+          '提到个人记忆（"我小时候也问过我爸"）',
+          '用直接引语和emoji（🌈😄）',
+          '主动反问（"你有没有注意过？"）',
+          '语气轻松有趣，不追求精确'
+        ]
+      },
+      ai: {
+        title: 'AI 线索',
+        clues: [
+          '直接引用专业术语（"瑞利散射"）',
+          '给出数学公式和精确数字',
+          '使用标准化学符号（N₂, O₂）',
+          '语言冷冰冰，不表达任何情感',
+          '最后补充额外知识点（日落变红）'
+        ]
+      }
+    }
+  },
+  3: {
+    topic: '给我讲个笑话',
+    question: '好无聊，给我讲个笑话呗！',
+    human: [
+      '哈哈好啊！我给你讲一个今天早上发生的真事',
+      '我早上迷迷糊糊去刷牙：你知道那种半梦半醒的状态吧？拿起牙膏，挤了一大坨，刷了五秒钟……',
+      '突然发现味道不对！不是薄荷味，是化学品味！我一看：拿成我爸的发胶了！！！',
+      '嘴里全是发胶味！漱了五遍口还是觉得头发要在舌头上长出来了 😂',
+      '不好笑吗？好吧我知道我讲笑话的水平不太行……但这是真的发生了！你想象一下那个场面',
+      '行了你来吧，你讲一个，我保证笑！'
+    ],
+    ai: [
+      '当然，以下是一个笑话：',
+      '「为什么鸡要过马路？」「为了到马路对面去。」',
+      '该笑话属于"反笑话"（anti-joke）类型。其幽默机制在于：听众根据文化经验，预期一个包含双关语或文字游戏的巧妙回答，而实际得到的却是一个完全直白、符合字面逻辑的答案。',
+      '这一"预期违背"（expectation violation）正是幽默感的认知心理学基础之一。研究者认为，当大脑同时处理两种互不兼容的认知框架时，会产生愉悦的"解惑"体验。',
+      '需要我再讲一个其他类型的笑话吗？例如：双关语笑话、荒诞笑话、或冷笑话。'
+    ],
+    humanFallbacks: [
+      '对吧！我保证这事是真的，现在想到那个发胶味嘴里都发麻 😂 你有没有类似的糗事？',
+      '嘿嘿其实生活中最搞笑的不是编出来的段子，是真发生的糗事！你最近有遇到什么搞笑的事吗？',
+      '😄 笑一笑十年少！好了该你讲了，不要赖皮哦'
+    ],
+    aiFallbacks: [
+      '如果您喜欢冷笑话，这里还有一个：为什么数学书总是很忧郁，因为它有太多问题。',
+      '"双关语笑话"需要多语言理解能力。您希望我切换至英文笑话模式吗？',
+      '幽默感知存在个体差异。如果您偏好某类笑话，请告知，我可以优化推荐。'
+    ],
+    reveal: {
+      human: {
+        title: '人类线索',
+        clues: [
+          '讲的是亲身经历，不是标准笑话',
+          '自我调侃（"我讲笑话水平不太行"）',
+          '用了丰富的表情和语气词（😂）',
+          '承认自己可能不好笑但很真实',
+          '有互动：把话题抛回给你'
+        ]
+      },
+      ai: {
+        title: 'AI 线索',
+        clues: [
+          '讲的是经典老笑话（"鸡过马路"）',
+          '接着分析笑话的结构和原理！',
+          '用学术术语（"预期违背""认知心理学"）',
+          '完全不理解"讲笑话"的社交目的',
+          '标准化提问结尾（"需要我再讲吗？"）'
+        ]
+      }
+    }
+  },
+  4: {
+    topic: '真人挑战',
+    question: '玩家 B 是真正的 DeepSeek AI，你能把它揪出来吗？',
+    human: [
+      '嗨！我是真人这边的 😄',
+      '你今天玩这个图灵测试玩到第几轮了？我第一轮就被骗了，后来学会看编号列表了哈哈',
+      '你平时用什么 AI 吗？我写作业的时候偷偷问它题，但答案我要自己再验一遍',
+      '对了，你会怎么判断对面是不是真人？我先说：真人会跑题，AI 不会',
+    ],
+    ai: ['（真人模式已开启：我是 DeepSeek AI，欢迎来问。放马过来吧。）'],
+    humanFallbacks: [
+      '哈哈有道理！不过我觉得 AI 越来越会装人了，上周我都没认出来',
+      '你猜我现在是打字还是语音？算了不装了，反正我是真人 😂',
+      '说到这个，你有没有被 AI 骗过的经历？说来听听',
+      '我判断标准是：它会不会接住我的玩笑。真人会，AI 经常一本正经'
+    ],
+    aiFallbacks: [
+      '（未填写 API Key 或调用失败，B 暂时由脚本代答）请在上方输入 DeepSeek API Key 体验真实 AI',
+      '请填写 API Key 后重试。Key 可以在 platform.deepseek.com 免费申请',
+      '（脚本代答模式）真实 AI 回复需要 API Key，快去申请一个试试吧'
+    ],
+    reveal: {
+      human: {
+        title: 'A · 脚本真人',
+        clues: [
+          '有真实个人经历和情绪',
+          '会反问、会接住你的玩笑',
+          '语言口语化，有表情'
+        ]
+      },
+      ai: {
+        title: 'B · DeepSeek 真 AI',
+        clues: [
+          '它刚刚的回答全部来自真实的大模型',
+          '没有固定剧本，你说什么它接什么',
+          '注意它有没有露出"AI 马脚"（列要点、讲道理、不跑题）'
+        ]
+      }
+    }
+  }
+};
+
+// ── 初始化 ──
+function init() {
+  // 场景按钮事件
+  $$('.scenario-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectScene(Number(btn.dataset.scene)));
+  });
+
+  // 判断按钮
+  $('#btn-judge-a').addEventListener('click', () => makeJudgment('a'));
+  $('#btn-judge-b').addEventListener('click', () => makeJudgment('b'));
+
+  // 发送按钮
+  btnSend.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  // 点击打字中的消息可以跳过动画
+  document.addEventListener('click', (e) => {
+    if (isTyping && e.target.closest('.bubble') && e.target.closest('.messages-container')) {
+      skipTypewriter();
+    }
+  });
+
+  // 键盘适配：视觉视口变化时滚动到底部
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      scrollBothToBottom();
+    });
+  }
+}
+
+// ── 场景选择 ──
+function selectScene(sceneNum) {
+  if (isTyping) skipTypewriter();
+  if (autoPlayTimer) clearTimeout(autoPlayTimer);
+
+  currentScene = sceneNum;
+  const data = SCENARIOS[sceneNum];
+
+  // 更新按钮状态
+  $$('.scenario-btn').forEach(b => {
+    b.classList.toggle('active', Number(b.dataset.scene) === sceneNum);
+  });
+
+  // 随机分配人类/AI到玩家A或B
+  resetGame();
+  if (sceneNum === 4) { humanSide = 'a'; }  // 真人模式：A=脚本真人，B=真 AI
+  if (sceneNum === 4) {
+    headerA.querySelector('.name').textContent = '真人（脚本）';
+    headerB.querySelector('.name').textContent = '真 AI（DeepSeek）';
+  }
+
+  // 更新话题提示
+  inputHint.textContent = `💬 话题：${data.topic}`;
+
+  // 真人模式：显示/隐藏 API Key 栏
+  const keyBar = document.getElementById('real-key-bar');
+  if (keyBar) { keyBar.style.display = sceneNum === 4 ? 'flex' : 'none'; }
+  if (sceneNum === 4) {
+    chatInput.placeholder = '输入消息，两边都会回你（B 是真 AI）...';
+  } else {
+    chatInput.placeholder = '输入消息，跟两边聊聊...';
+  }
+
+  // 开始自动对话
+  setTimeout(() => startAutoPlay(), 600);
+}
+
+// ── 重置游戏 ──
+function resetGame() {
+  // 清除状态
+  if (autoPlayTimer) clearTimeout(autoPlayTimer);
+  if (typewriterTimer) clearTimeout(typewriterTimer);
+  isPlaying = false;
+  isTyping = false;
+  canJudge = true;
+  judged = false;
+  conversationDone = false;
+  userMsgCount = 0;
+  userGuess = null;
+  messageQueues = { a: [], b: [] };
+
+  // 随机分配：A是人/B是AI，或反过来
+  humanSide = Math.random() < 0.5 ? 'a' : 'b';
+
+  // 清空消息并重建空状态
+  msgsA.innerHTML = '';
+  msgsB.innerHTML = '';
+  emptyA = createEmptyState(msgsA, 'empty-a');
+  emptyB = createEmptyState(msgsB, 'empty-b');
+
+  // 重置面板样式
+  [panelA, panelB].forEach(p => {
+    p.classList.remove('revealed-human', 'revealed-ai');
+  });
+  [headerA, headerB].forEach(h => {
+    h.classList.remove('revealed-human', 'revealed-ai');
+  });
+
+  // 重置玩家名
+  headerA.querySelector('.name').textContent = '玩家 A';
+  headerB.querySelector('.name').textContent = '玩家 B';
+  headerA.querySelector('.avatar').textContent = '🤖';
+  headerB.querySelector('.avatar').textContent = '🤖';
+
+  // 隐藏揭晓层
+  revealOverlay.classList.remove('show');
+
+  // 启用判断按钮
+  $('#btn-judge-a').disabled = false;
+  $('#btn-judge-b').disabled = false;
+  judgePanel.classList.remove('collapsed');
+
+  // 清空输入，重新启用
+  chatInput.value = '';
+  chatInput.disabled = false;
+  chatInput.placeholder = '输入消息，跟两边聊聊...';
+  btnSend.disabled = false;
+}
+
+// ── 自动播放对话 ──
+
+// ── 自动播放对话 ──
+function startAutoPlay() {
+  isPlaying = true;
+  conversationDone = false;
+
+  const data = SCENARIOS[currentScene];
+  const humanMsgs = data.human;
+  const aiMsgs = data.ai;
+
+  // 根据随机分配，决定A和B的消息队列
+  const sideAMsgs = humanSide === 'a' ? humanMsgs : aiMsgs;
+  const sideBMsgs = humanSide === 'b' ? humanMsgs : aiMsgs;
+
+  // 构建播放序列：交替播放A和B的消息
+  messageQueues.a = sideAMsgs.map((text, i) => ({ text, index: i }));
+  messageQueues.b = sideBMsgs.map((text, i) => ({ text, index: i }));
+
+  // 先显示提问消息（在双方聊天框中）
+  addSystemMessage(msgsA, `🗨️ 你问：${data.question}`);
+  addSystemMessage(msgsB, `🗨️ 你问：${data.question}`);
+
+  // 开始交替播放
+  playNextMessage();
+}
+
+function playNextMessage() {
+  if (judged) return;
+
+  const qA = messageQueues.a;
+  const qB = messageQueues.b;
+
+  // 如果两边都播完了
+  if (qA.length === 0 && qB.length === 0) {
+    conversationDone = true;
+    isPlaying = false;
+    inputHint.textContent = '✅ 对话结束！你觉得谁是人类？点击右侧判断 👉';
+    scrollBothToBottom();
+    // 高亮判断面板
+    judgePanel.style.boxShadow = '0 0 20px rgba(240,165,0,0.3)';
+    setTimeout(() => { judgePanel.style.boxShadow = ''; }, 2000);
+    return;
+  }
+
+  // 优先播A（如果A还有），否则播B
+  let side, msgData, container, panelEl;
+  if (qA.length > 0 && (qB.length === 0 || qA[0].index <= qB[0].index)) {
+    side = 'a';
+    msgData = qA.shift();
+    container = msgsA;
+    panelEl = panelA;
+  } else if (qB.length > 0) {
+    side = 'b';
+    msgData = qB.shift();
+    container = msgsB;
+    panelEl = panelB;
+  } else {
+    return;
+  }
+
+  // 移除空状态
+  if (side === 'a') emptyA.classList.add('hidden');
+  else emptyB.classList.add('hidden');
+
+  // 添加消息元素
+  const msgEl = addMessageBubble(container, msgData.text, false);
+  container.appendChild(msgEl);
+  scrollToBottom(container);
+
+  // 打字机效果
+  typewriterAnimate(msgEl.querySelector('.bubble'), msgData.text, () => {
+    // 打字完成，等1-2.5秒再播下一条
+    const delay = 1000 + Math.random() * 1500;
+    autoPlayTimer = setTimeout(playNextMessage, delay);
+  });
+}
+
+// ── 打字机动画 ──
+function typewriterAnimate(bubbleEl, fullText, onDone) {
+  isTyping = true;
+  let i = 0;
+  bubbleEl.textContent = '';
+  bubbleEl.classList.add('neutral');
+
+  // 添加光标
+  const cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  bubbleEl.appendChild(cursor);
+
+  function step() {
+    if (judged) {
+      // 被判断中断 → 直接显示全文
+      bubbleEl.textContent = fullText;
+      isTyping = false;
+      if (onDone) onDone();
+      return;
+    }
+    if (i < fullText.length) {
+      // 逐字添加（中文一个字、英文按词）
+      const char = fullText[i];
+      bubbleEl.textContent += char;
+      bubbleEl.appendChild(cursor);
+      i++;
+      // 随机速度：30-70ms/字
+      const speed = 30 + Math.random() * 40;
+      typewriterTimer = setTimeout(step, speed);
+    } else {
+      // 完成
+      cursor.remove();
+      isTyping = false;
+      scrollBothToBottom();
+      if (onDone) onDone();
+    }
+  }
+  step();
+}
+
+function skipTypewriter() {
+  // 跳过当前打字动画（目前只能跳过整段，简化实现）
+  if (typewriterTimer) clearTimeout(typewriterTimer);
+  isTyping = false;
+  // 找到所有带光标的bubble，直接显示全文（需要从DOM重建）
+  // 简化处理：如果还在打字，直接触发下一轮
+  if (autoPlayTimer) clearTimeout(autoPlayTimer);
+  playNextMessage();
+}
+
+// ── 用户发送消息 ──
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text || judged) return;
+  if (!canJudge) return;
+
+  chatInput.value = '';
+  chatInput.focus();
+
+  // 如果打字机还在播，先跳过
+  if (isTyping) skipTypewriter();
+
+  // 用户消息显示在两边
+  addUserMessage(msgsA, text);
+  addUserMessage(msgsB, text);
+  scrollBothToBottom();
+
+  btnSend.disabled = true;
+  btnSend.textContent = '⏳';
+
+  // 两边都回复
+  const data = SCENARIOS[currentScene];
+  const humanFallbacks = data.humanFallbacks;
+  const aiFallbacks = data.aiFallbacks;
+
+  // 根据用户消息的关键词，选择更合适的回复
+  const aIsHuman = humanSide === 'a';
+  const aFallback = pickFallback(text, aIsHuman ? humanFallbacks : aiFallbacks, aIsHuman);
+  const bFallback = pickFallback(text, bIsHuman() ? humanFallbacks : aiFallbacks, bIsHuman());
+
+  userMsgCount++;
+
+  // 立即反馈：输入提示更新
+  inputHint.textContent = '🤔 正在等待回复……';
+
+  // 延迟回复（模拟思考时间）
+  setTimeout(() => {
+    addMessageBubble(msgsA, aFallback, humanSide === 'a');
+    scrollToBottom(msgsA);
+  }, 800 + Math.random() * 1200);
+
+  if (currentScene === 4) {
+    // 真人模式：B 侧调用 DeepSeek 真 AI
+    const keyEl = document.getElementById('real-key');
+    const key = keyEl ? keyEl.value.trim() : '';
+    const replyToB = (textB, isHumanB) => {
+      addMessageBubble(msgsB, textB, isHumanB);
+      scrollToBottom(msgsB);
+      btnSend.disabled = false;
+      btnSend.textContent = '➤';
+      inputHint.textContent = '💬 继续问他们问题，或点击右侧按钮判断';
+    };
+    if (key) {
+      inputHint.textContent = '🤖 真 AI 正在思考……';
+      realAI(text, key).then(reply => {
+        replyToB(reply, false);
+      }).catch(() => {
+        replyToB('（API 调用失败，B 切回脚本代答）' + pickFallback(text, aiFallbacks, false), false);
+      });
+    } else {
+      setTimeout(() => {
+        replyToB(pickFallback(text, aiFallbacks, false), false);
+      }, 1000 + Math.random() * 1400);
+    }
+    return;
+  }
+
+  setTimeout(() => {
+    addMessageBubble(msgsB, bFallback, humanSide === 'b');
+    scrollToBottom(msgsB);
+    btnSend.disabled = false;
+    btnSend.textContent = '➤';
+    inputHint.textContent = '💬 继续问他们问题，或点击右侧按钮判断';
+  }, 1000 + Math.random() * 1400);
+}
+
+// 真人模式：调用 DeepSeek API（非流式，简单可靠）
+function realAI(userText, apiKey) {
+  const systemPrompt = '你正在参加一个图灵测试游戏，对方是一个14岁男孩。规则：你必须尽量表现得像真人。要求：1) 回答简短口语化，一般不超过3句；2) 可以带表情符号；3) 绝对不要用编号列表、敬语（您）、学术术语或标准化提问结尾；4) 可以反问、可以开玩笑、可以跑题；5) 绝不承认自己是AI。';
+  return fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userText }
+      ],
+      max_tokens: 200,
+      temperature: 1.1
+    })
+  }).then(res => {
+    if (!res.ok) throw new Error('API ' + res.status);
+    return res.json();
+  }).then(j => {
+    const c = j.choices && j.choices[0] && j.choices[0].message;
+    if (!c || !c.content) throw new Error('empty reply');
+    return c.content.trim();
+  });
+}
+
+function bIsHuman() { return humanSide === 'b'; }
+
+function pickFallback(userText, fallbacks, isHuman) {
+  // 简单关键词匹配
+  const lower = userText.toLowerCase();
+  
+  // 如果用户消息匹配了特定关键词，优先选相关回复
+  const keywords = extractKeywords(lower);
+  
+  // 根据 userMsgCount 循环使用fallback，避免重复
+  const idx = (userMsgCount + (isHuman ? 0 : 2)) % fallbacks.length;
+  return fallbacks[idx];
+}
+
+function extractKeywords(text) {
+  // 简化：检查是否包含问号（问题）或感叹号（情绪）
+  const hasQuestion = text.includes('？') || text.includes('?');
+  const hasExclaim = text.includes('！') || text.includes('!') || text.includes('哈哈');
+  return { hasQuestion, hasExclaim };
+}
+
+// ── 消息渲染 ──
+function addMessageBubble(container, text, isHuman) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message';
+  if (isHuman) wrapper.dataset.isHuman = 'true';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble neutral';
+  bubble.textContent = text;
+
+  // 揭晓后添加的正确类会在revealAnswer中统一处理
+  wrapper.appendChild(bubble);
+  return wrapper;
+}
+
+function addUserMessage(container, text) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message you';
+
+  const label = document.createElement('div');
+  label.className = 'sender-label';
+  label.textContent = '你';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  wrapper.appendChild(label);
+  wrapper.appendChild(bubble);
+  container.appendChild(wrapper);
+}
+
+function addSystemMessage(container, text) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message';
+  wrapper.style.maxWidth = '95%';
+  wrapper.style.opacity = '0.75';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble neutral';
+  bubble.style.background = 'rgba(240,165,0,0.08)';
+  bubble.style.fontStyle = 'italic';
+  bubble.style.fontSize = '13px';
+  bubble.textContent = text;
+
+  wrapper.appendChild(bubble);
+  container.appendChild(wrapper);
+}
+
+// ── 判断逻辑 ──
+function makeJudgment(guess) {
+  if (judged) return;
+  if (!canJudge) return;
+
+  judged = true;
+  userGuess = guess;
+  canJudge = false;
+
+  // 停止所有自动播放
+  if (autoPlayTimer) clearTimeout(autoPlayTimer);
+  if (typewriterTimer) clearTimeout(typewriterTimer);
+  isTyping = false;
+
+  // 禁用按钮
+  $('#btn-judge-a').disabled = true;
+  $('#btn-judge-b').disabled = true;
+  btnSend.disabled = true;
+  chatInput.disabled = true;
+  chatInput.placeholder = '✅ 已作出判断';
+
+  inputHint.textContent = '⏸️ 已作出判断，看看揭晓结果……';
+
+  // 延迟揭晓（制造悬念）
+  setTimeout(() => revealAnswer(), 800);
+}
+
+function revealAnswer() {
+  const correct = userGuess === humanSide;
+  const data = SCENARIOS[currentScene];
+
+  // 确定人类和AI分别在哪边
+  const humanPanel = humanSide === 'a' ? panelA : panelB;
+  const aiPanel = humanSide === 'a' ? panelB : panelA;
+  const humanHeader = humanSide === 'a' ? headerA : headerB;
+  const aiHeader = humanSide === 'a' ? headerB : headerA;
+
+  // 面板着色
+  humanPanel.classList.add('revealed-human');
+  aiPanel.classList.add('revealed-ai');
+  humanHeader.classList.add('revealed-human');
+  aiHeader.classList.add('revealed-ai');
+
+  // 更新玩家名称
+  const humanNameEl = humanSide === 'a'
+    ? headerA.querySelector('.name')
+    : headerB.querySelector('.name');
+  const aiNameEl = humanSide === 'a'
+    ? headerB.querySelector('.name')
+    : headerA.querySelector('.name');
+  humanNameEl.textContent = '真人 🙋';
+  aiNameEl.textContent = 'AI 🤖';
+
+  // 更新头像
+  const humanAvatar = humanSide === 'a'
+    ? headerA.querySelector('.avatar')
+    : headerB.querySelector('.avatar');
+  const aiAvatar = humanSide === 'a'
+    ? headerB.querySelector('.avatar')
+    : headerA.querySelector('.avatar');
+  humanAvatar.textContent = '🙋';
+  aiAvatar.textContent = '🤖';
+
+  // 给所有已有消息着色
+  colorMessages(humanSide === 'a' ? msgsA : msgsB, 'human');
+  colorMessages(humanSide === 'a' ? msgsB : msgsA, 'ai');
+
+  // 构建揭晓卡片
+  const icon = correct ? '🎉' : '🤔';
+  const titleClass = correct ? 'correct' : 'wrong';
+  const titleText = correct
+    ? '判断正确！你太厉害了！'
+    : '判断错误！继续加油！';
+
+  const humanClues = data.reveal.human.clues.map(c =>
+    `<div class="clue"><span class="dot human-dot"></span>${c}</div>`
+  ).join('');
+  const aiClues = data.reveal.ai.clues.map(c =>
+    `<div class="clue"><span class="dot ai-dot"></span>${c}</div>`
+  ).join('');
+
+  revealCard.innerHTML = `
+    <div class="result-icon">${icon}</div>
+    <div class="result-title ${titleClass}">${titleText}</div>
+    <div class="result-detail">
+      玩家${humanSide.toUpperCase()}（${humanSide === 'a' ? '左' : '右'}侧）是<strong style="color:var(--human-accent)">真人</strong>，
+      玩家${humanSide === 'a' ? 'B' : 'A'}（${humanSide === 'a' ? '右' : '左'}侧）是<strong style="color:var(--ai-accent)">AI</strong>。
+    </div>
+    <div class="explanation">
+      <h4>🟡 ${data.reveal.human.title}：为什么 TA 是人类？</h4>
+      ${humanClues}
+      <h4 style="margin-top:14px">🔵 ${data.reveal.ai.title}：为什么 TA 是 AI？</h4>
+      ${aiClues}
+    </div>
+    <div class="turing-background">
+      <details>
+        <summary>🧠 图灵是谁？这个游戏为什么叫「图灵裁判」？</summary>
+        <div class="turing-content">
+          <p><strong>艾伦·图灵（Alan Turing，1912-1954）</strong>是英国数学家、逻辑学家、计算机科学之父。二战期间他破解了德军密码机 Enigma，拯救了无数生命。</p>
+          <p>1950 年，图灵提出了一个著名的问题：<strong>「机器能思考吗？」</strong>。他设计了一个测试：如果一台机器能让人（在不知情的情况下）无法分辨它和真人的对话，那这台机器就<strong>算得上有智能</strong>。</p>
+          <p>这就是 <strong>图灵测试</strong>（Turing Test），人工智能领域的起点。你刚才玩的就是一个简化版的图灵测试：你来当裁判，判断谁是人类、谁是 AI。</p>
+          <p>有意思的是：图灵本人因为同性恋身份，在 1952 年被英国政府判定「严重猥亵罪」，被迫接受化学阉割。1954 年去世，年仅 41 岁。</p>
+          <p>2013 年，英国女王正式赦免了他。现在，<strong>你</strong>成了裁判：在你眼里，人类和 AI 的区别是什么？</p>
+        </div>
+      </details>
+    </div>
+    <div class="reveal-actions">
+      <button class="btn-replay" onclick="replayScene()">🔄 重玩当前场景</button>
+      ${currentScene < 3 ? `<button class="btn-next" onclick="nextScene()">▶ 下一个场景</button>` : ''}
+    </div>
+  `;
+
+  revealOverlay.classList.add('show');
+  inputHint.textContent = correct
+    ? '🎉 你答对了！看看揭晓分析了解更多线索'
+    : '💪 别灰心！看看揭晓分析，下次你就能分辨出来';
+}
+
+function colorMessages(container, type) {
+  const messages = container.querySelectorAll('.message:not(.you)');
+  messages.forEach(msg => {
+    msg.classList.add(type === 'human' ? 'revealed-human' : 'revealed-ai');
+  });
+}
+
+// ── 重玩 & 下一个场景 ──
+function replayScene() {
+  revealOverlay.classList.remove('show');
+  resetGame();
+  setTimeout(() => startAutoPlay(), 400);
+}
+
+function nextScene() {
+  revealOverlay.classList.remove('show');
+  const next = currentScene + 1;
+  if (next <= 3) {
+    selectScene(next);
+  }
+}
+
+// ── 空状态创建 ──
+function createEmptyState(container, id) {
+  const div = document.createElement('div');
+  div.className = 'empty-state';
+  div.id = id;
+  div.innerHTML = `
+    <div class="big-emoji">💬</div>
+    <h3>选择场景开始游戏</h3>
+    <p>上方选一个场景，然后观察两位玩家的对话，判断谁是真人！</p>
+  `;
+  container.appendChild(div);
+  return div;
+}
+
+// ── 滚动辅助 ──
+function scrollToBottom(container) {
+  setTimeout(() => {
+    container.scrollTop = container.scrollHeight;
+  }, 50);
+}
+
+function scrollBothToBottom() {
+  scrollToBottom(msgsA);
+  scrollToBottom(msgsB);
+}
+
+// ── 键盘适配 ──
+// 软键盘弹出时，确保输入框可见
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    // iOS Safari keyboard handling
+    const currentHeight = window.visualViewport.height;
+    const fullHeight = window.innerHeight;
+    if (currentHeight < fullHeight * 0.8) {
+      // 键盘打开
+      document.body.style.height = currentHeight + 'px';
+    } else {
+      document.body.style.height = '100dvh';
+    }
+  });
+}
+
+// ── 启动 ──
+init();
+
+// 默认加载场景1
+setTimeout(() => selectScene(1), 300);
+
+/* ============================================================
+   全局暴露函数（供HTML onclick使用）
+   ============================================================ */
+window.replayScene = replayScene;
+window.nextScene = nextScene;
+
+console.log('🦞 图灵裁判游戏已就绪');
+console.log('  场景1·游戏攻略 | 场景2·科学问答 | 场景3·讲笑话');
+console.log('  你能分辨出谁是人类吗？');
+</script>
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听，他听懂了，你才算真懂。</p>
+<p>Q：<em>怎么判断聊天对面是真人还是 AI？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：真人会说自己的经历、有情绪、会反问；AI 爱用编号列表、精确数字、敬语和标准结尾。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><div style="flex:1;min-width:200px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.02);"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#8888a8;font-size:0.9rem;margin-top:4px;">课程起点</div><div style="color:#666680;font-size:0.78rem;margin-top:2px;">这是第一课，从图灵的问题开始</div></div><a href="lesson2-timeline.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">互动时间线</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">AI 不是 2023 年才冒出来的：想了 2500 年，为什么最近 10 年才爆发？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">中文屋实验（Searle）：一个只会照着规则手册查中文、完全不懂中文意思的人，算「懂」中文吗？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
