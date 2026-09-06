@@ -1,0 +1,13 @@
+{
+  "name": "AI 夏令营 · 12课交互课堂",
+  "short_name": "AI 夏令营",
+  "description": "从图灵测试到概念全景图，12 个交互页面看见 AI 的世界",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#0f0f1a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
