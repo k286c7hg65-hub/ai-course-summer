@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>概念全景图 · AI 夏令营第12课</title>
+<style>
+:root {
+  --bg: #0b0b14; --panel: #13131f; --text: #d0d0d8; --dim: #707088;
+  --blue: #5B9BD5; --orange: #F0A500; --green: #4ECB71; --gold: #E5C07B;
+  --purple: #C678DD; --red: #E06C75; --white: #f0f0f0;
+  --font: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.header{text-align:center;padding:28px 20px 16px;border-bottom:1px solid #1e1e32}
+.header h1{font-size:1.8rem;color:var(--white);letter-spacing:.03em}
+.header p{color:var(--dim);font-size:.92rem;margin-top:4px}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 24px;padding:12px 20px;font-size:.78rem}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+.controls{display:flex;justify-content:center;align-items:center;gap:12px;padding:8px 20px 0;flex-wrap:wrap}
+.controls button{padding:6px 16px;border:1px solid #2a2a44;border-radius:20px;background:var(--panel);color:var(--text);cursor:pointer;font-size:.82rem;transition:.2s;font-family:var(--font)}
+.controls button:hover{background:#252540;border-color:#4a4a6a}
+.controls button.accent{border-color:var(--orange);color:var(--orange)}
+
+.canvas-wrap{position:relative;width:100%;max-width:1200px;margin:0 auto;aspect-ratio:16/10;min-height:520px;max-height:75vh;cursor:grab;touch-action:none}
+.canvas-wrap:active{cursor:grabbing}
+.canvas-wrap canvas{display:block;width:100%;height:100%}
+.zoom-hint{position:absolute;bottom:10px;right:14px;font-size:.72rem;color:var(--dim);pointer-events:none}
+
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center}
+.popup-overlay.show{display:flex}
+.popup{background:var(--panel);border:1px solid #2a2a44;border-radius:14px;padding:24px 28px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:popIn .2s ease}
+@keyframes popIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.popup h2{font-size:1.3rem;margin-bottom:6px;color:var(--white)}
+.popup .cat{font-size:.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.popup p{font-size:.9rem;line-height:1.65;color:var(--dim)}
+.popup .concepts{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.popup .concepts span{font-size:.72rem;padding:3px 10px;border-radius:12px;background:#1e1e36;color:var(--text)}
+.popup .close{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--dim);font-size:1.3rem;cursor:pointer}
+
+.people{max-width:1100px;margin:40px auto;padding:0 20px}
+.people h2{text-align:center;font-size:1.3rem;color:var(--white);margin-bottom:6px}
+.people .sub{text-align:center;color:var(--dim);font-size:.82rem;margin-bottom:20px}
+.people-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.person-card{background:var(--panel);border:1px solid #1e1e32;border-radius:12px;padding:18px 20px;display:flex;gap:14px;transition:.25s}
+.person-card:hover{border-color:#3a3a5a}
+.person-card .emoji{font-size:2.4rem;line-height:1;flex-shrink:0}
+.person-card .info h3{font-size:1rem;color:var(--white);margin-bottom:4px}
+.person-card .info .obs{font-size:.82rem;color:var(--orange);line-height:1.5;margin-bottom:4px}
+.person-card .info .cost{font-size:.76rem;color:var(--dim);line-height:1.4}
+
+@media(max-width:640px){
+  .header h1{font-size:1.4rem}
+  .people-grid{grid-template-columns:1fr}
+  .canvas-wrap{min-height:400px;max-height:55vh}
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson11-ethics-cards.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><span style="color:#444;">下一课 ▶</span></div>
+</nav>
+
+
+<div class="header">
+  <h1>🧠 AI 夏令营 · 概念全景图</h1>
+  <p>12 课、64 个核心概念 ： 一张图看完全程</p>
+</div>
+<div class="legend">
+  <span><i class="dot" style="background:var(--blue)"></i>概念</span>
+  <span><i class="dot" style="background:var(--orange)"></i>技术</span>
+  <span><i class="dot" style="background:var(--green)"></i>应用</span>
+  <span><i class="dot" style="background:var(--gold)"></i>经济</span>
+  <span><i class="dot" style="background:var(--purple)"></i>政治</span>
+  <span><i class="dot" style="background:var(--red)"></i>行动</span>
+</div>
+<div class="controls">
+  <button id="btnExpand" title="显示全部子节点">🌐 全部展开</button>
+  <button id="btnCollapse" title="仅显示课程节点" style="display:none">📦 收起子节点</button>
+  <button class="accent" id="btnExport">📸 导出图片</button>
+</div>
+<div class="canvas-wrap" id="wrap">
+  <canvas id="c"></canvas>
+  <div class="zoom-hint">🖱 滚轮缩放 · 拖拽移动</div>
+</div>
+
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup" id="popup"></div>
+</div>
+
+<div class="people">
+  <h2>🔥 七个人的七种偏执</h2>
+  <p class="sub">推动 AI 走到今天的，不是共识，是偏执</p>
+  <div class="people-grid" id="peopleGrid"></div>
+</div>
+
+<script>
+// ===== DATA =====
+const LESSONS = [
+  { id:1,  name:'什么是AI', cat:'concept',   color:'#5B9BD5', desc:'图灵在1950年问了一个问题：机器能思考吗？这一问问出了整个AI时代。', concepts:[{cn:'智能',en:'Intelligence'},{cn:'图灵测试',en:'Turing Test'},{cn:'窄AI',en:'Narrow AI'},{cn:'通用人工智能',en:'AGI'}] },
+  { id:2,  name:'AI思想史', cat:'concept',   color:'#5B9BD5', desc:'从达特茅斯的夏天到寒冬，再到春天：AI的历史不是一条直线，而是波浪。', concepts:[{cn:'达特茅斯会议',en:'Dartmouth Workshop'},{cn:'AI冬天',en:'AI Winter'},{cn:'相邻可能',en:'Adjacent Possible'}] },
+  { id:3,  name:'机器学习', cat:'tech',      color:'#F0A500', desc:'梯度下降是AI学会一切的底层算法：沿着山坡往下走，走到谷底就学会了。', concepts:[{cn:'梯度下降',en:'Gradient Descent'},{cn:'损失函数',en:'Loss Function'},{cn:'学习率',en:'Learning Rate'},{cn:'监督学习',en:'Supervised'},{cn:'无监督学习',en:'Unsupervised'},{cn:'强化学习',en:'Reinforcement'},{cn:'SGD',en:'SGD'},{cn:'Adam',en:'Adam'}] },
+  { id:4,  name:'神经网络', cat:'tech',      color:'#F0A500', desc:'一层层神经元叠起来，反向传播是它的学习方法：Transformer改变了这一切。', concepts:[{cn:'感知机',en:'Perceptron'},{cn:'反向传播',en:'Backprop'},{cn:'过拟合',en:'Overfitting'},{cn:'ReLU',en:'ReLU'},{cn:'CNN',en:'CNN'},{cn:'Transformer',en:'Transformer'},{cn:'缩放定律',en:'Scaling Laws'}] },
+  { id:5,  name:'卷积与GAN', cat:'tech',      color:'#F0A500', desc:'卷积核在图片上滑动找特征；GAN让两个网络互相博弈：一个造假，一个打假。', concepts:[{cn:'卷积',en:'Convolution'},{cn:'卷积核',en:'Kernel'},{cn:'特征图',en:'Feature Map'},{cn:'GAN',en:'GAN'},{cn:'扩散模型',en:'Diffusion'},{cn:'对抗样本',en:'Adversarial'}] },
+  { id:6,  name:'大语言模型', cat:'tech',      color:'#F0A500', desc:'LLM的本质是"下一个token预测"：简单到荒谬，却涌现出了推理、翻译、编程。', concepts:[{cn:'分词',en:'Tokenization'},{cn:'词嵌入',en:'Embedding'},{cn:'自注意力',en:'Self-Attention'},{cn:'下一个token',en:'Next Token'},{cn:'涌现',en:'Emergence'},{cn:'LLM',en:'LLM'}] },
+  { id:7,  name:'行业应用', cat:'app',       color:'#4ECB71', desc:'AlphaFold破解了50年的蛋白质折叠难题；杰文斯悖论说：效率越高，消耗越多。', concepts:[{cn:'AlphaFold',en:'AlphaFold'},{cn:'杰文斯悖论',en:"Jevons' Paradox"}] },
+  { id:8,  name:'AI产业链', cat:'app',       color:'#4ECB71', desc:'从沙子到GPU再到数据中心：AI的每一层都依赖一个脆弱的全球供应链。', concepts:[{cn:'半导体',en:'Semiconductor'},{cn:'EUV光刻',en:'EUV Lithography'},{cn:'GPU',en:'GPU'},{cn:'供应链',en:'Supply Chain'},{cn:'瓶颈',en:'Bottleneck'}] },
+  { id:9,  name:'AI经济', cat:'economy',    color:'#E5C07B', desc:'市值、PE、IPO、泡沫：AI不仅是技术故事，更是几百亿美元的商业故事。', concepts:[{cn:'市值',en:'Market Cap'},{cn:'市盈率',en:'P/E Ratio'},{cn:'IPO',en:'IPO'},{cn:'开源vs闭源',en:'Open vs Closed'},{cn:'泡沫',en:'Bubble'}] },
+  { id:10, name:'技术政治', cat:'politics',  color:'#C678DD', desc:'芯片禁令、出口管制、技术主权：AI已经成了大国博弈的棋盘。', concepts:[{cn:'出口管制',en:'Export Control'},{cn:'芯片禁令',en:'Chip Ban'},{cn:'技术主权',en:'Tech Sovereignty'}] },
+  { id:11, name:'对齐与安全', cat:'politics',  color:'#C678DD', desc:'如果AI比人聪明，它会听我们的话吗？对齐问题是AI领域最严肃的问题。', concepts:[{cn:'对齐',en:'Alignment'},{cn:'宪法AI',en:'Constitutional AI'},{cn:'存在风险',en:'Existential Risk'},{cn:'RLHF',en:'RLHF'},{cn:'停止按钮',en:'Stop Button'}] },
+  { id:12, name:'AI素养', cat:'action',    color:'#E06C75', desc:'在AI时代，知道AI能做什么、不能做什么、什么时候该怀疑它：这是生存技能。', concepts:[{cn:'AI素养',en:'AI Literacy'},{cn:'提示词工程',en:'Prompt Engineering'}] },
+];
+
+const PEOPLE = [
+  { emoji:'🧮', name:'Alan Turing', zh:'艾伦·图灵', obs:'"机器能思考吗？"：在所有人嘲笑之前，他已经在认真回答这个问题了。', cost:'1952年因同性恋被化学阉割，1954年咬下毒苹果自杀。41岁。' },
+  { emoji:'🧠', name:'Geoffrey Hinton', zh:'杰弗里·辛顿', obs:'在所有人放弃神经网络时，他独自研究了30年。', cost:'2023年离开Google，公开警告自己毕生研究可能毁灭人类。' },
+  { emoji:'⚡', name:'Ilya Sutskever', zh:'伊利亚·苏茨克维', obs:'"数据压缩就是智能"：一句话把AGI变成了工程问题。', cost:'2023年参与罢免Sam Altman失败，离开OpenAI创办SSI。' },
+  { emoji:'🎮', name:'Demis Hassabis', zh:'戴密斯·哈萨比斯', obs:'13岁成为国际象棋大师，后来决定AI是终极游戏。', cost:'DeepMind十年烧掉Google数十亿美元才证明自己。' },
+  { emoji:'💎', name:'Jensen Huang', zh:'黄仁勋', obs:'"买得越多，省得越多"：把GPU从游戏显卡变成了AI时代的石油。', cost:'CUDA生态押注15年，前10年华尔街认为他在浪费钱。' },
+  { emoji:'🔮', name:'Dario Amodei', zh:'达里奥·阿莫迪', obs:'离开OpenAI不是因为钱，是因为他觉得AGI来得比所有人想的都快。', cost:'Anthropic成立3年烧掉100亿美元，赌的是人类还能控制AI。' },
+  { emoji:'🐋', name:'梁文锋', zh:'Liang Wenfeng', obs:'DeepSeek的V3和R1用不到十分之一的成本，追平了最前沿：震惊了整个硅谷。', cost:'芯片禁令下在算力沙漠里造出了绿洲，代价是每一块GPU都要精打细算。' },
+];
+
+// ===== CANVAS SETUP =====
+const wrap = document.getElementById('wrap');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = rect.width; H = rect.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// ===== GRAPH BUILDING =====
+let nodes = [], edges = [];
+let expanded = false;
+let selectedLesson = null;
+
+function buildGraph() {
+  nodes = []; edges = [];
+  const cx = W / 2, cy = H / 2;
+  // Center AI node
+  nodes.push({ id:'AI', x:cx, y:cy, vx:0, vy:0, r:28, label:'AI', color:'#f0f0f0', type:'center', fixed:true });
+  // Lesson nodes in a ring
+  const ringR = Math.min(W, H) * 0.28;
+  LESSONS.forEach((l, i) => {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    nodes.push({ id:'L'+l.id, x:cx + ringR * Math.cos(a), y:cy + ringR * Math.sin(a), vx:0, vy:0, r:18, label:l.name, color:l.color, type:'lesson', lesson:l });
+    edges.push({ from:'AI', to:'L'+l.id, rest:ringR });
+  });
+  if (expanded) addSubNodes();
+}
+
+function addSubNodes() {
+  const cx = W / 2, cy = H / 2;
+  LESSONS.forEach((l, i) => {
+    const parent = nodes.find(n => n.id === 'L'+l.id);
+    l.concepts.forEach((c, j) => {
+      const a = (j / Math.max(l.concepts.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      const r = 28 + l.concepts.length * 4;
+      nodes.push({
+        id: 'L'+l.id+'C'+j, x:parent.x + r * Math.cos(a), y:parent.y + r * Math.sin(a),
+        vx:0, vy:0, r:9, label:c.en, color:l.color + '88', type:'concept', parentId:'L'+l.id,
+        cn: c.cn, en: c.en
+      });
+      edges.push({ from:'L'+l.id, to:'L'+l.id+'C'+j, rest: r });
+    });
+  });
+}
+
+function removeSubNodes() {
+  nodes = nodes.filter(n => n.type !== 'concept');
+  edges = edges.filter(e => !e.to.includes('C'));
+}
+
+// ===== PHYSICS (Verlet) =====
+const REPULSION = 8000, SPRING_K = 0.015, DAMPING = 0.82, CENTER_G = 0.001;
+let simRunning = true, simTimer = null;
+
+function simulate() {
+  if (!simRunning) return;
+  for (let iter = 0; iter < 2; iter++) {
+    // Repulsion
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        let dx = a.x - b.x, dy = a.y - b.y;
+        let d = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (d > 300) continue;
+        let f = REPULSION / (d * d);
+        let fx = (dx / d) * f, fy = (dy / d) * f;
+        if (!a.fixed) { a.vx += fx; a.vy += fy; }
+        if (!b.fixed) { b.vx -= fx; b.vy -= fy; }
+      }
+    }
+    // Springs
+    for (const e of edges) {
+      const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+      if (!a || !b) continue;
+      let dx = b.x - a.x, dy = b.y - a.y;
+      let d = Math.sqrt(dx * dx + dy * dy) || 1;
+      let f = SPRING_K * (d - e.rest);
+      let fx = (dx / d) * f, fy = (dy / d) * f;
+      if (!a.fixed) { a.vx += fx; a.vy += fy; }
+      if (!b.fixed) { b.vx -= fx; b.vy -= fy; }
+    }
+    // Center gravity for concept nodes toward parent
+    for (const n of nodes) {
+      if (n.fixed) continue;
+      if (n.parentId) {
+        const p = nodes.find(x => x.id === n.parentId);
+        if (p) { n.vx += (p.x - n.x) * CENTER_G * 3; n.vy += (p.y - n.y) * CENTER_G * 3; }
+      } else if (n.type === 'lesson') {
+        n.vx += (W/2 - n.x) * CENTER_G; n.vy += (H/2 - n.y) * CENTER_G;
+      }
+    }
+    // Integrate + damp
+    for (const n of nodes) {
+      if (n.fixed) continue;
+      n.vx *= DAMPING; n.vy *= DAMPING;
+      n.x += n.vx; n.y += n.vy;
+      // Clamp to canvas
+      n.x = Math.max(n.r, Math.min(W - n.r, n.x));
+      n.y = Math.max(n.r, Math.min(H - n.r, n.y));
+    }
+  }
+  draw();
+  simTimer = requestAnimationFrame(simulate);
+}
+
+// ===== RENDERING =====
+let zoom = 1, panX = 0, panY = 0;
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(panX + W/2 * (1 - zoom), panY + H/2 * (1 - zoom));
+  ctx.scale(zoom, zoom);
+
+  // Edges
+  for (const e of edges) {
+    const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+    if (!a || !b) continue;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = a.color + '30'; ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  // Nodes
+  for (const n of nodes) {
+    // Glow
+    if (n.type === 'center' || (n.type === 'lesson' && n.id === (selectedLesson ? 'L'+selectedLesson : ''))) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 6, 0, Math.PI * 2);
+      ctx.fillStyle = n.color + '20'; ctx.fill();
+    }
+    // Circle
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = n.type === 'concept' ? (n.color || '#888') : n.color;
+    ctx.fill();
+    if (n.type !== 'concept') {
+      ctx.strokeStyle = '#ffffff22'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    // Label
+    const fs = n.type === 'center' ? 13 : n.type === 'lesson' ? 11 : 8;
+    ctx.fillStyle = n.type === 'concept' ? '#ddd' : '#111';
+    ctx.font = `bold ${fs}px var(--font)`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (n.type === 'center') {
+      ctx.fillText(n.label, n.x, n.y);
+    } else if (n.type === 'lesson') {
+      ctx.fillText(n.label, n.x, n.y);
+      // Count badge
+      if (n.lesson) {
+        ctx.fillStyle = '#ffffff44'; ctx.font = '9px sans-serif';
+        ctx.fillText('#' + n.lesson.id, n.x, n.y + n.r + 12);
+      }
+    } else {
+      ctx.fillText(n.label, n.x, n.y - 1);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ===== INTERACTION =====
+let dragging = null, dragOX = 0, dragOY = 0, panning = false, panSX = 0, panSY = 0;
+
+function screenToWorld(sx, sy) {
+  return {
+    x: (sx - panX - W/2 * (1 - zoom)) / zoom,
+    y: (sy - panY - H/2 * (1 - zoom)) / zoom
+  };
+}
+
+function hitTest(wx, wy) {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const dx = wx - n.x, dy = wy - n.y;
+    if (Math.sqrt(dx * dx + dy * dy) < n.r + 4) return n;
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', e => {
+  const pos = screenToWorld(e.offsetX, e.offsetY);
+  const hit = hitTest(pos.x, pos.y);
+  if (hit && hit.type !== 'concept') {
+    dragging = hit;
+    if (hit.fixed) hit.fixed = false;
+    dragOX = hit.x - pos.x; dragOY = hit.y - pos.y;
+    canvas.setPointerCapture(e.pointerId);
+  } else {
+    panning = true; panSX = e.offsetX - panX; panSY = e.offsetY - panY;
+  }
+});
+
+canvas.addEventListener('pointermove', e => {
+  const pos = screenToWorld(e.offsetX, e.offsetY);
+  if (dragging) {
+    dragging.x = pos.x + dragOX; dragging.y = pos.y + dragOY;
+    // Move sub-nodes with parent
+    for (const n of nodes) {
+      if (n.parentId === dragging.id) {
+        n.x += e.movementX / zoom; n.y += e.movementY / zoom;
+      }
+    }
+  } else if (panning) {
+    panX = e.offsetX - panSX; panY = e.offsetY - panSY;
+  }
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (dragging) {
+    if (dragging.type === 'lesson') {
+      selectedLesson = dragging.lesson.id;
+      showPopup(dragging.lesson);
+    }
+    dragging = null;
+  }
+  panning = false;
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const d = e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.max(0.3, Math.min(3, zoom * d));
+}, { passive: false });
+
+// Double-click to reset view
+canvas.addEventListener('dblclick', e => {
+  zoom = 1; panX = 0; panY = 0;
+});
+
+// ===== POPUP =====
+function showPopup(lesson) {
+  const overlay = document.getElementById('popupOverlay');
+  const popup = document.getElementById('popup');
+  const catNames = { concept:'🧠 概念', tech:'⚙️ 技术', app:'🌍 应用', economy:'💰 经济', politics:'🏛 政治', action:'🎯 行动' };
+  popup.innerHTML = `
+    <button class="close" onclick="document.getElementById('popupOverlay').classList.remove('show')">✕</button>
+    <div class="cat">${catNames[lesson.cat] || ''} · 第${lesson.id}课</div>
+    <h2>${lesson.name}</h2>
+    <p>${lesson.desc}</p>
+    <div class="concepts">
+      ${lesson.concepts.map(c => `<span>${c.en}</span>`).join('')}
+    </div>
+  `;
+  overlay.classList.add('show');
+}
+document.getElementById('popupOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+});
+
+// ===== EXPAND / COLLAPSE =====
+document.getElementById('btnExpand').addEventListener('click', () => {
+  expanded = true; removeSubNodes(); addSubNodes();
+  document.getElementById('btnExpand').style.display = 'none';
+  document.getElementById('btnCollapse').style.display = '';
+});
+document.getElementById('btnCollapse').addEventListener('click', () => {
+  expanded = false; removeSubNodes();
+  document.getElementById('btnExpand').style.display = '';
+  document.getElementById('btnCollapse').style.display = 'none';
+});
+
+// ===== EXPORT =====
+document.getElementById('btnExport').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'AI概念全景图.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// ===== PEOPLE CARDS =====
+function renderPeople() {
+  document.getElementById('peopleGrid').innerHTML = PEOPLE.map(p => `
+    <div class="person-card">
+      <div class="emoji">${p.emoji}</div>
+      <div class="info">
+        <h3>${p.name} <small style="color:var(--dim);font-weight:400">${p.zh}</small></h3>
+        <div class="obs">🔥 ${p.obs}</div>
+        <div class="cost">💔 ${p.cost}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== INIT =====
+function init() {
+  resize();
+  buildGraph();
+  renderPeople();
+  simulate();
+}
+window.addEventListener('resize', () => { resize(); buildGraph(); });
+init();
+</script>
+<!-- ====== 结课项目 + 毕业证书 (upgrade3) ====== -->
+<div class="section-title">🚀 结课项目 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 用 AI 做一件你真想做的事，从想法到完成</span></div>
+<div style="max-width:900px;margin:0 auto 24px;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;">
+    <div style="font-size:1.6rem;">📱</div>
+    <div style="color:#fff;font-weight:700;margin:6px 0 4px;">校园问题产品方案</div>
+    <div style="color:#8888a8;font-size:0.82rem;line-height:1.6;">找一件校园里的麻烦事，设计一个 AI 产品解决它：问题 → 用户 → 功能 → 名字。AI 当参谋，你当产品经理。</div>
+  </div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;">
+    <div style="font-size:1.6rem;">🎨</div>
+    <div style="color:#fff;font-weight:700;margin:6px 0 4px;">短篇漫画</div>
+    <div style="color:#8888a8;font-size:0.82rem;line-height:1.6;">让 AI 出创意，你画或编辑，做 4 到 8 格短篇。重点：AI 出的点子，最终你说了算。</div>
+  </div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;">
+    <div style="font-size:1.6rem;">🧠</div>
+    <div style="color:#fff;font-weight:700;margin:6px 0 4px;">图像分类器</div>
+    <div style="color:#8888a8;font-size:0.82rem;line-height:1.6;">不用 API：用 Teachable Machine 训练一个能认手写数字或猫狗的小分类器，亲眼看看「训练」到底是什么。</div>
+  </div>
+</div>
+<div class="section-title">🤖 你的项目助手 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 想不清楚就问它，但决定你来下</span></div>
+<div style="max-width:900px;margin:0 auto 24px;padding:0 16px;">
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);overflow:hidden;">
+    <div id="pMsgs" style="min-height:150px;max-height:300px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:0.88rem;line-height:1.7;"></div>
+    <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;">
+      <input type="password" id="pKey" placeholder="DeepSeek API Key（sk-...，选填）" style="flex:1;min-width:170px;padding:9px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:var(--text);font-size:0.82rem;font-family:inherit;">
+      <input type="text" id="pInput" placeholder="比如：帮我设计一个解决课间排队太久的方案" style="flex:2;min-width:210px;padding:9px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:var(--text);font-size:0.82rem;font-family:inherit;">
+      <button id="pSend" style="padding:9px 18px;background:#f5b942;border:none;border-radius:10px;color:#14141f;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">发送 ➤</button>
+    </div>
+  </div>
+  <p style="margin:8px 0 0;font-size:0.72rem;color:var(--text-dim);text-align:center;">🔒 Key 只保存在本机浏览器，只发往 DeepSeek 官方接口。不填 Key 时助手用预置思路回答（标注「示例」）。</p>
+</div>
+<div class="section-title">🎓 毕业证书 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 点名字写上你的名字，通关数自动统计</span></div>
+<div style="max-width:640px;margin:0 auto 30px;padding:0 16px;">
+  <div id="cert" style="border:3px solid #f5b942;border-radius:18px;background:linear-gradient(160deg,#14141f,#1c1c2e);padding:30px 22px;text-align:center;position:relative;box-shadow:0 8px 30px rgba(0,0,0,0.4);">
+    <div style="font-size:2.4rem;">🎓</div>
+    <div style="color:#f5b942;font-weight:800;font-size:1.5rem;letter-spacing:3px;margin:6px 0;">毕业证书</div>
+    <div style="color:#d0d0dc;font-size:0.9rem;margin-top:12px;">兹证明</div>
+    <div id="certName" contenteditable="true" spellcheck="false" style="font-size:1.6rem;font-weight:700;color:#fff;border-bottom:2px dashed rgba(255,255,255,0.35);display:inline-block;padding:2px 20px;margin:10px 0;min-width:170px;outline:none;">点击写上你的名字</div>
+    <div style="color:#8888a8;font-size:0.85rem;margin-top:6px;">已完成 AI 夏令营 12 课交互课堂 · <span id="certCount" style="color:#22d3ee;font-weight:700;">0</span>/12 课通关打卡</div>
+    <div style="color:#f5b942;font-size:0.86rem;margin-top:16px;line-height:1.7;">「计算机发明时，人说它是会算数的机器。AI 今天还是会猜下一个词的机器：你们这代人会把它变成什么？」</div>
+    <div style="color:#8888a8;font-size:0.78rem;margin-top:14px;">AI 夏令营 · <span id="certDate"></span></div>
+    <div style="position:absolute;top:12px;right:16px;font-size:1.1rem;">⭐</div>
+    <div style="position:absolute;top:12px;left:16px;font-size:1.1rem;">⭐</div>
+    <div style="position:absolute;bottom:12px;right:16px;font-size:1.1rem;">⭐</div>
+    <div style="position:absolute;bottom:12px;left:16px;font-size:1.1rem;">⭐</div>
+  </div>
+  <div style="text-align:center;margin-top:12px;">
+    <button id="certSave" style="padding:10px 20px;background:#22d3ee;border:none;border-radius:10px;color:#0b0b14;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:inherit;">保存名字 ✓</button>
+    <button id="certPrint" style="padding:10px 20px;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:10px;color:#fff;font-weight:700;font-size:0.88rem;cursor:pointer;font-family:inherit;margin-left:8px;">🖨️ 打印证书</button>
+  </div>
+  <p style="text-align:center;font-size:0.72rem;color:var(--text-dim);margin-top:8px;">名字存在本机浏览器。打印时选「另存为 PDF」就能导出证书图片，可以发给爸爸妈妈 🖼️</p>
+</div>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>12 课学完，用一句话说 AI 是什么？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：智能 = 信息处理，学习 = 从数据里找模式；AI 是工具、是生意、也是国家竞争力：而你们，是创造者。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson11-ethics-cards.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">伦理困境卡</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">AI 该被允许做什么？你在 6 张困境卡里选过</div></a><div style="flex:1;min-width:200px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.02);"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#8888a8;font-size:0.9rem;margin-top:4px;">结课！</div><div style="color:#666680;font-size:0.78rem;margin-top:2px;">回总览看看 12 课全景</div></div></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">最后一问：「你做了什么决定是 AI 帮不了你的？」整个课最重要的反思。</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}
+// ===== 结课项目助手 + 毕业证书 (upgrade3) =====
+(function(){
+  // ---- 项目助手（同 L7 模式：真 DeepSeek / 预置示例降级） ----
+  var pMsgs = document.getElementById('pMsgs'), pInput = document.getElementById('pInput'),
+      pKey = document.getElementById('pKey'), pSend = document.getElementById('pSend'), pBusy = false;
+  function addP(who, text){
+    var d = document.createElement('div');
+    d.style.cssText = 'max-width:85%;padding:9px 13px;border-radius:12px;font-size:0.86rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;align-self:' + (who==='me'?'flex-end':'flex-start') + ';background:' + (who==='me'?'rgba(245,185,66,0.16)':'rgba(255,255,255,0.07)') + ';border:1px solid ' + (who==='me'?'rgba(245,185,66,0.35)':'rgba(255,255,255,0.1)') + ';';
+    d.textContent = (who==='me'?'🧑 你：':'🤖 助手：') + text;
+    pMsgs.appendChild(d); pMsgs.scrollTop = pMsgs.scrollHeight;
+  }
+  var SAMPLE = '好问题！给你一个思路框架，你自己往里填：\n1) 痛点：这件事麻烦在哪，说给一个完全不知道的人听；\n2) 用户：谁会为它买单（同学？老师？食堂阿姨？）；\n3) 功能：AI 在里面做什么，人做什么（关键：AI 辅助，人拍板）；\n4) 名字：一句话能记住的名字。\n（示例回答：填 Key 可以让 AI 针对你的具体问题深入聊）';
+  function sendP(){
+    if (pBusy) return;
+    var q = pInput.value.trim(); if (!q) return;
+    addP('me', q); pInput.value = '';
+    var key = pKey.value.trim();
+    if (key && key.indexOf('sk-') === 0) {
+      pBusy = true; pSend.disabled = true; pSend.textContent = '思考中…';
+      fetch('https://api.deepseek.com/chat/completions', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
+        body: JSON.stringify({model:'deepseek-chat', messages:[
+          {role:'system', content:'你是 12 课 AI 夏令营结课项目的教练，服务一个 14 岁男孩。他正在做结课项目（校园问题产品方案 / 短篇漫画 / 图像分类器）。你的风格：1) 像伙伴不像老师，短句，3 到 6 句；2) 先肯定他的想法，再给一个具体改进或下一步；3) 永远把决定权留给他，用「你可以」「你说了算」；4) 不用编号列表，不用敬语，不反问收尾。'},
+          {role:'user', content:q}
+        ], max_tokens:280, temperature:0.9})
+      }).then(function(r){ if(!r.ok) throw new Error('API '+r.status); return r.json(); })
+        .then(function(j){ var c=j.choices&&j.choices[0]&&j.choices[0].message; if(!c||!c.content) throw new Error('empty'); addP('ai', c.content.trim()); })
+        .catch(function(){ addP('ai', '（API 调用失败，切回示例思路）\n' + SAMPLE); })
+        .then(function(){ pBusy = false; pSend.disabled = false; pSend.textContent = '发送 ➤'; });
+    } else {
+      setTimeout(function(){ addP('ai', SAMPLE); }, 600);
+    }
+  }
+  pSend.onclick = sendP;
+  pInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') sendP(); });
+  addP('ai', '想做哪个项目？把想法丢给我，我帮你把它想清楚。记住：最后拍板的永远是你。');
+
+  // ---- 毕业证书 ----
+  var NAME_KEY = 'ai-course-cert-name';
+  var nameEl = document.getElementById('certName');
+  var saved = null;
+  try { saved = localStorage.getItem(NAME_KEY); } catch(e){}
+  if (saved) { nameEl.textContent = saved; }
+  document.getElementById('certSave').onclick = function(){
+    var n = nameEl.textContent.trim();
+    if (!n || n === '点击写上你的名字') { nameEl.textContent = '点击写上你的名字'; return; }
+    try { localStorage.setItem(NAME_KEY, n); } catch(e){}
+    nameEl.textContent = n;
+    var b = document.getElementById('certSave');
+    b.textContent = '已保存 ✓'; setTimeout(function(){ b.textContent = '保存名字 ✓'; }, 1500);
+  };
+  // 通关数：读 index 的 localStorage
+  var done = 0;
+  try {
+    var raw = localStorage.getItem('ai-course-progress');
+    if (raw) { var obj = JSON.parse(raw); done = Object.keys(obj).filter(function(k){ return obj[k]; }).length; }
+  } catch(e){}
+  document.getElementById('certCount').textContent = done;
+  var d = new Date();
+  document.getElementById('certDate').textContent = d.getFullYear() + ' 年 ' + (d.getMonth()+1) + ' 月 ' + d.getDate() + ' 日';
+  // 打印证书（另存为 PDF = 导出）
+  document.getElementById('certPrint').onclick = function(){
+    window.print();
+  };
+})();
+
+</script>
+</body>
+</html>
