@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>产业链互动金字塔 — AI 夏令营第8课</title>
+<style>
+/* ===== Theme ===== */
+:root {
+  --bg: #0b0b14; --panel: #151528; --panel2: #1c1c38;
+  --border: #2a2a4a; --text: #d0d0dc; --text2: #8888a8; --text-bright: #fff;
+  --cyan: #22d3ee; --purple: #e8795f; --orange: #f59e0b;
+  --green: #4ade80; --earth: #c9956b;
+  --red: #ef4444; --amber: #fbbf24;
+  --font: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; overflow-x: hidden; line-height: 1.6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 32px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(34,211,238,0.06), rgba(168,85,247,0.04), transparent);
+}
+.header h1 { font-size: 1.8rem; color: var(--text-bright); }
+.header h1 span { background: linear-gradient(90deg, var(--cyan), var(--purple), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header .sub { margin-top: 8px; color: var(--text2); font-size: 0.92rem; }
+.header .sub em { color: var(--orange); font-style: normal; }
+
+/* ===== Section Title ===== */
+.section-title {
+  text-align: center; padding: 28px 20px 10px;
+  font-size: 1.15rem; font-weight: 700; color: var(--text-bright);
+  letter-spacing: 0.5px;
+}
+.section-title .icon { margin-right: 6px; }
+
+/* ===== Pyramid ===== */
+.pyramid-container {
+  max-width: 900px; margin: 12px auto 0; padding: 0 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.pyramid-layer {
+  position: relative; cursor: pointer; border-radius: 10px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; min-height: 58px;
+  border: 1px solid transparent; overflow: hidden;
+  user-select: none; -webkit-user-select: none;
+}
+.pyramid-layer:hover { transform: translateY(-2px) scale(1.01); filter: brightness(1.15); }
+.pyramid-layer:active { transform: scale(0.98); }
+.pyramid-layer::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 10px; opacity: 0.08; transition: opacity 0.3s;
+}
+.pyramid-layer:hover::before { opacity: 0.16; }
+
+/* layer widths & colors */
+.layer-l5 { width: 52%; background: linear-gradient(135deg, #0e2a38, #0d1f2d); border-color: rgba(34,211,238,0.3); }
+.layer-l5::before { background: var(--cyan); }
+.layer-l5 .layer-level { color: var(--cyan); }
+.layer-l4 { width: 64%; background: linear-gradient(135deg, #1a0e2e, #150d28); border-color: rgba(168,85,247,0.3); }
+.layer-l4::before { background: var(--purple); }
+.layer-l4 .layer-level { color: var(--purple); }
+.layer-l3 { width: 76%; background: linear-gradient(135deg, #2a1a08, #1f1406); border-color: rgba(245,158,11,0.3); }
+.layer-l3::before { background: var(--orange); }
+.layer-l3 .layer-level { color: var(--orange); }
+.layer-l2 { width: 88%; background: linear-gradient(135deg, #0a2412, #081a0e); border-color: rgba(74,222,128,0.3); }
+.layer-l2::before { background: var(--green); }
+.layer-l2 .layer-level { color: var(--green); }
+.layer-l1 { width: 100%; background: linear-gradient(135deg, #281a10, #1f150d); border-color: rgba(201,149,107,0.3); }
+.layer-l1::before { background: var(--earth); }
+.layer-l1 .layer-level { color: var(--earth); }
+
+/* layer label */
+.layer-label {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  min-width: 90px;
+}
+.layer-level {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;
+  white-space: nowrap; text-transform: uppercase;
+}
+.layer-nameplate {
+  font-size: 0.9rem; font-weight: 700; color: var(--text-bright);
+}
+/* layer data */
+.layer-data {
+  flex: 1; display: flex; flex-wrap: wrap; gap: 4px 12px;
+  font-size: 0.75rem; color: var(--text2);
+  overflow: hidden; min-width: 0;
+}
+.layer-data .data-chip {
+  background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px;
+  white-space: nowrap; font-size: 0.7rem;
+}
+.layer-data .data-key { color: var(--text); font-weight: 600; }
+/* expand arrow */
+.layer-arrow {
+  font-size: 0.9rem; transition: transform 0.35s; flex-shrink: 0;
+  color: var(--text2); width: 24px; text-align: center;
+}
+.pyramid-layer.expanded .layer-arrow { transform: rotate(180deg); }
+
+/* detail panel */
+.layer-detail {
+  max-width: 0; max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s, max-width 0s 0.4s;
+  border-radius: 10px; background: var(--panel2); border: 0px solid var(--border);
+  width: 100%; padding: 0 18px; margin: 0;
+  font-size: 0.82rem; color: var(--text2);
+}
+.pyramid-layer.expanded + .layer-detail,
+.layer-detail.active {
+  max-width: 900px; max-height: 600px; opacity: 1;
+  border-width: 1px; padding: 16px 18px; margin: 0 0 8px;
+  transition: max-height 0.5s ease, opacity 0.35s, max-width 0s 0s;
+}
+.layer-detail .detail-title {
+  font-weight: 700; color: var(--text-bright); margin-bottom: 8px;
+  font-size: 0.92rem;
+}
+.layer-detail .detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px; margin-bottom: 10px;
+}
+.layer-detail .detail-item {
+  background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px;
+}
+.layer-detail .detail-item .d-label { font-size: 0.7rem; color: var(--text2); }
+.layer-detail .detail-item .d-value { font-size: 0.85rem; color: var(--text); font-weight: 600; margin-top: 2px; }
+.layer-detail .detail-deps {
+  font-size: 0.75rem; color: var(--orange); margin-top: 6px;
+  padding: 8px 12px; background: rgba(245,158,11,0.06); border-radius: 8px;
+}
+
+/* ===== Collapse state for bottleneck ===== */
+.pyramid-layer.collapsed {
+  filter: grayscale(0.85) brightness(0.5); opacity: 0.55;
+  pointer-events: none; animation: collapsePulse 0.6s ease;
+}
+.pyramid-layer.collapsed-cascade {
+  filter: grayscale(0.5) brightness(0.65); opacity: 0.65;
+  border-color: rgba(239,68,68,0.5) !important;
+  animation: cascadeWarn 0.8s ease;
+}
+@keyframes collapsePulse {
+  0% { filter: grayscale(0); opacity: 1; }
+  30% { filter: grayscale(0) brightness(2); }
+  100% { filter: grayscale(0.85) brightness(0.5); opacity: 0.55; }
+}
+@keyframes cascadeWarn {
+  0% { filter: grayscale(0); }
+  40% { filter: grayscale(0) brightness(1.5); border-color: rgba(239,68,68,0.8); }
+  100% { filter: grayscale(0.5) brightness(0.65); opacity: 0.65; }
+}
+
+/* ===== Pyramid label ===== */
+.pyramid-labels {
+  display: flex; justify-content: space-between; max-width: 900px;
+  margin: 6px auto 0; padding: 0 16px; font-size: 0.7rem; color: var(--text2);
+}
+
+/* ===== Bottleneck Section ===== */
+.bottleneck-section {
+  max-width: 700px; margin: 20px auto; padding: 0 16px;
+}
+.bottleneck-title {
+  font-size: 1.05rem; font-weight: 700; color: var(--text-bright);
+  text-align: center; margin-bottom: 10px;
+}
+.bottleneck-desc {
+  font-size: 0.82rem; color: var(--text2); text-align: center; margin-bottom: 16px;
+}
+.btn-row {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+}
+.btn-bottleneck {
+  padding: 12px 22px; border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.25s; border: 2px solid;
+  background: transparent; color: var(--text); font-family: var(--font);
+}
+.btn-bottleneck:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+.btn-bottleneck:active { transform: scale(0.96); }
+.btn-l1 { border-color: var(--earth); color: var(--earth); }
+.btn-l1:hover { background: rgba(201,149,107,0.15); }
+.btn-l2 { border-color: var(--green); color: var(--green); }
+.btn-l2:hover { background: rgba(74,222,128,0.15); }
+.btn-l3 { border-color: var(--orange); color: var(--orange); }
+.btn-l3:hover { background: rgba(245,158,11,0.15); }
+.btn-reset {
+  border-color: var(--text2); color: var(--text2); font-weight: 600;
+  background: transparent;
+}
+.btn-reset:hover { background: rgba(255,255,255,0.06); }
+
+.bottleneck-msg {
+  margin-top: 14px; text-align: center; font-size: 0.85rem; color: var(--red);
+  min-height: 24px; font-weight: 600; transition: all 0.3s;
+  padding: 10px 16px; border-radius: 10px;
+  background: rgba(239,68,68,0.06); display: none;
+}
+.bottleneck-msg.show { display: block; animation: fadeSlideIn 0.4s ease; }
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-hint {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ===== CEO Role-Play Section ===== */
+.ceo-section {
+  max-width: 900px; margin: 24px auto 40px; padding: 0 16px;
+}
+.scenario-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin-bottom: 16px;
+  transition: all 0.3s;
+}
+.scenario-card .scenario-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.scenario-card .scenario-icon { font-size: 1.5rem; }
+.scenario-card .scenario-title { font-size: 1rem; font-weight: 700; color: var(--text-bright); }
+.scenario-card .scenario-desc { font-size: 0.85rem; color: var(--text2); margin-bottom: 14px; }
+
+.choice-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice-btn {
+  padding: 10px 18px; border-radius: 24px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; border: 2px solid var(--border);
+  background: var(--panel2); color: var(--text); font-family: var(--font);
+  white-space: nowrap;
+}
+.choice-btn:hover { border-color: var(--purple); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(168,85,247,0.2); }
+.choice-btn:active { transform: scale(0.96); }
+.choice-btn.selected { border-color: var(--purple); background: rgba(168,85,247,0.12); color: var(--text-bright); }
+.choice-btn .choice-letter { color: var(--purple); font-weight: 800; margin-right: 4px; }
+
+.result-panel {
+  margin-top: 12px; padding: 14px 16px; border-radius: 10px;
+  background: var(--panel2); border-left: 3px solid var(--purple);
+  font-size: 0.84rem; color: var(--text); line-height: 1.7;
+  display: none; animation: fadeSlideIn 0.4s ease;
+}
+.result-panel.show { display: block; }
+.result-panel .result-icon { font-size: 1.2rem; margin-right: 4px; }
+.result-panel .result-highlight { color: var(--orange); font-weight: 600; }
+.result-panel .result-warn { color: var(--red); font-weight: 600; }
+
+/* ===== Quiz hint ===== */
+.quiz-hint {
+  text-align: center; font-size: 0.78rem; color: var(--text2); margin-top: 8px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .header h1 { font-size: 1.35rem; }
+  .layer-l5 { width: 62%; } .layer-l4 { width: 73%; }
+  .layer-l3 { width: 84%; } .layer-l2 { width: 93%; } .layer-l1 { width: 100%; }
+  .pyramid-layer { padding: 12px 12px; min-height: 50px; gap: 8px; }
+  .layer-label { min-width: 60px; }
+  .layer-nameplate { font-size: 0.78rem; }
+  .layer-data { font-size: 0.68rem; gap: 2px 6px; }
+  .layer-data .data-chip { font-size: 0.65rem; padding: 2px 6px; }
+  .detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .layer-l5 { width: 72%; } .layer-l4 { width: 80%; }
+  .layer-l3 { width: 88%; } .layer-l2 { width: 95%; } .layer-l1 { width: 100%; }
+  .layer-level { font-size: 0.65rem; }
+  .layer-nameplate { font-size: 0.72rem; }
+  .layer-data .data-chip { display: none; }
+  .layer-data .data-key { font-size: 0.65rem; }
+  .choice-btn { font-size: 0.75rem; padding: 8px 14px; }
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson7-industry-heatmap.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson9-investment-machine.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<!-- ===== Header ===== -->
+<div class="header">
+  <h1>⛓️<span>产业链互动金字塔</span></h1>
+  <p class="sub">第8课 · AI 的物理肉身：从<em>沙子</em>到<em>ChatGPT</em>，中间隔着什么？</p>
+</div>
+
+<div style="max-width:900px;margin:14px auto 0;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(34,211,238,0.06);color:var(--text2);font-size:0.8rem;line-height:1.7;text-align:center;">📌 本页数据来自公开报道与行业估算 · 数据快照 2026-06（2026 年中），教学用途；标注「~」为近似值。</div>
+
+<!-- ===== Pyramid Section ===== -->
+<div class="section-title"><span class="icon">🔺</span>五层互动金字塔</div>
+<p class="quiz-hint" style="animation:pulse-hint 2s ease-in-out infinite;">👇 点击每一层展开详细信息</p>
+
+<div class="pyramid-container" id="pyramid">
+
+  <!-- L5: Application -->
+  <div class="pyramid-layer layer-l5" data-layer="L5" onclick="toggleLayer(this)">
+    <div class="layer-label">
+      <span class="layer-level">L5</span>
+      <span class="layer-nameplate">应用层</span>
+    </div>
+    <div class="layer-data">
+      <span class="data-chip">🤖 ChatGPT</span>
+      <span class="data-chip">🌙 Kimi</span>
+      <span class="data-chip">📝 文心一言</span>
+      <span class="data-chip">🎨 Midjourney</span>
+    </div>
+    <span class="layer-arrow">▼</span>
+  </div>
+  <div class="layer-detail" id="detail-L5">
+    <div class="detail-title">🧩 L5 · 应用层：用户触达的最后一公里</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">ChatGPT</div><div class="d-value">月活 3 亿+，周活 1 亿+，全球访问量第一 AI 产品</div></div>
+      <div class="detail-item"><div class="d-label">Kimi (月之暗面)</div><div class="d-value">200 万字超长上下文，国内长文本标杆</div></div>
+      <div class="detail-item"><div class="d-label">文心一言</div><div class="d-value">百度生态整合，用户 1 亿+，中文理解领先</div></div>
+      <div class="detail-item"><div class="d-label">Midjourney</div><div class="d-value">2000 万+ 用户，年营收 $3 亿，11 人团队奇迹</div></div>
+      <div class="detail-item"><div class="d-label">应用总数</div><div class="d-value">全球 AI 应用 >10,000 款，覆盖文本/图像/视频/代码/音乐</div></div>
+      <div class="detail-item"><div class="d-label">商业变现</div><div class="d-value">订阅制（ChatGPT Plus $20/月）+ API 按量计费 + 企业授权</div></div>
+    </div>
+    <div class="detail-deps">📌 依赖链路：L5 应用层 ← 依赖 L4 模型层的 API/能力 ← L3 算力层的推理服务 ← L2 制造层的芯片 ← L1 原材料的晶圆<br>💡 没有下面的四层，ChatGPT 只是一行无法运行的代码。</div>
+  </div>
+
+  <!-- L4: Model -->
+  <div class="pyramid-layer layer-l4" data-layer="L4" onclick="toggleLayer(this)">
+    <div class="layer-label">
+      <span class="layer-level">L4</span>
+      <span class="layer-nameplate">模型层</span>
+    </div>
+    <div class="layer-data">
+      <span class="data-chip">🧠 GPT-4</span>
+      <span class="data-key">2.5 万 A100 · 训 3 月 · 成本 $1 亿</span>
+      <span class="data-chip">🐋 DeepSeek</span>
+      <span class="data-key">成本仅 GPT-4 的 ~1/18</span>
+    </div>
+    <span class="layer-arrow">▼</span>
+  </div>
+  <div class="layer-detail" id="detail-L4">
+    <div class="detail-title">🧠 L4 · 模型层：AI 的"大脑"</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">GPT-4 训练成本</div><div class="d-value">约 $1 亿，2.5 万张 A100 GPU，训练 90-100 天</div></div>
+      <div class="detail-item"><div class="d-label">GPT-4 参数规模</div><div class="d-value">1.76 万亿参数（MoE 架构，8×2200 亿）</div></div>
+      <div class="detail-item"><div class="d-label">DeepSeek-V3</div><div class="d-value">约 $560 万，2048 张 H800 GPU，训练 ~2 个月</div></div>
+      <div class="detail-item"><div class="d-label">成本差距</div><div class="d-value">DeepSeek 成本仅为 GPT-4 的 ~1/18</div></div>
+      <div class="detail-item"><div class="d-label">技术路线</div><div class="d-value">MoE 架构 + 多头潜在注意力 (MLA) + FP8 混合精度</div></div>
+      <div class="detail-item"><div class="d-label">开源 vs 闭源</div><div class="d-value">Llama/Mistral/DeepSeek 开源；GPT-4/Claude/Gemini 闭源</div></div>
+    </div>
+    <div class="detail-deps">📌 依赖链路：L4 模型层 ← L3 算力（GPU 集群训练/推理）← L2 制造（芯片生产）← L1 原材料（晶圆）<br>💡 GPT-4 训练总成本约 $1 亿，其中电费账单 ≈ $1,000 万，够一个小县城用一年。</div>
+  </div>
+
+  <!-- L3: Computing -->
+  <div class="pyramid-layer layer-l3" data-layer="L3" onclick="toggleLayer(this)">
+    <div class="layer-label">
+      <span class="layer-level">L3</span>
+      <span class="layer-nameplate">算力层</span>
+    </div>
+    <div class="layer-data">
+      <span class="data-chip">🟢 NVIDIA</span>
+      <span class="data-key">AI GPU 市占 80%+</span>
+      <span class="data-chip">🏭 数据中心</span>
+      <span class="data-chip">⚙️ CUDA 生态</span>
+    </div>
+    <span class="layer-arrow">▼</span>
+  </div>
+  <div class="layer-detail" id="detail-L3">
+    <div class="detail-title">⚡ L3 · 算力层：AI 的"肌肉"</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">NVIDIA 数据中心 GPU</div><div class="d-value">全球 AI 训练/推理市占率 >80%，市值 $5 万亿+（2026.6，全球最高市值公司）</div></div>
+      <div class="detail-item"><div class="d-label">H100 单价</div><div class="d-value">$25,000-$40,000/张，8 卡服务器 ~$30 万</div></div>
+      <div class="detail-item"><div class="d-label">CUDA 生态</div><div class="d-value">450 万+ 开发者，20 年积累，竞争对手难以复制</div></div>
+      <div class="detail-item"><div class="d-label">数据中心电力</div><div class="d-value">一座 AI 数据中心 ≈ 中小城市用电量（100MW+）</div></div>
+      <div class="detail-item"><div class="d-label">竞争格局</div><div class="d-value">AMD MI300X / Intel Gaudi 3 / Google TPU / 华为昇腾</div></div>
+      <div class="detail-item"><div class="d-label">推理 vs 训练</div><div class="d-value">推理占 GPU 用量 60%+，训练占 40%，推理需求增速更快</div></div>
+    </div>
+    <div class="detail-deps">📌 依赖链路：L3 算力层 ← 依赖 L2 制造层（台积电代工 GPU 芯片）← L1 原材料层（晶圆）<br>💡 NVIDIA 的护城河不是硬件，是 CUDA。硬件可以抄，生态抄不走。</div>
+  </div>
+
+  <!-- L2: Manufacturing -->
+  <div class="pyramid-layer layer-l2" data-layer="L2" onclick="toggleLayer(this)">
+    <div class="layer-label">
+      <span class="layer-level">L2</span>
+      <span class="layer-nameplate">制造层</span>
+    </div>
+    <div class="layer-data">
+      <span class="data-chip">🔬 ASML</span>
+      <span class="data-key">EUV 光刻机 100% 垄断</span>
+      <span class="data-chip">🏭 台积电</span>
+      <span class="data-key">先进制程 90%</span>
+      <span class="data-chip">📐 3nm</span>
+    </div>
+    <span class="layer-arrow">▼</span>
+  </div>
+  <div class="layer-detail" id="detail-L2">
+    <div class="detail-title">🔬 L2 · 制造层：物理世界的精度极限</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">ASML EUV 光刻机</div><div class="d-value">全球唯一供应商，单价 $2-4 亿/台，年产量仅 ~50 台</div></div>
+      <div class="detail-item"><div class="d-label">台积电先进制程</div><div class="d-value">3nm 全球市占率 >90%，5nm/7nm 也领先</div></div>
+      <div class="detail-item"><div class="d-label">EUV 技术壁垒</div><div class="d-value">30 年研发积累，10 万+ 精密零部件，5000+ 全球供应商</div></div>
+      <div class="detail-item"><div class="d-label">下一代：2nm</div><div class="d-value">台积电 2026 年 1 月已进入大规模量产，产能至 2026 年底全部售罄</div></div>
+      <div class="detail-item"><div class="d-label">光刻原理</div><div class="d-value">13.5nm 极紫外光 → 反射镜系统 → 精度相当于从月球瞄准一枚硬币</div></div>
+      <div class="detail-item"><div class="d-label">地缘意义</div><div class="d-value">一台 EUV 光刻机 = 一个 40 英尺集装箱，运输需 3 架波音 747</div></div>
+    </div>
+    <div class="detail-deps">📌 依赖链路：L2 制造层 ← 依赖 L1 原材料层（高纯度硅晶圆）← 向上供应 L3 所有芯片<br>💡 如果 ASML 明天消失，全球芯片制造倒退 10 年。没有替代方案。</div>
+  </div>
+
+  <!-- L1: Raw Materials -->
+  <div class="pyramid-layer layer-l1" data-layer="L1" onclick="toggleLayer(this)">
+    <div class="layer-label">
+      <span class="layer-level">L1</span>
+      <span class="layer-nameplate">原材料层</span>
+    </div>
+    <div class="layer-data">
+      <span class="data-chip">🏖️ 沙子</span>
+      <span class="data-key">→ 硅 → 晶圆</span>
+      <span class="data-chip">🇯🇵 SUMCO</span>
+      <span class="data-chip">🇯🇵 信越化学</span>
+    </div>
+    <span class="layer-arrow">▼</span>
+  </div>
+  <div class="layer-detail" id="detail-L1">
+    <div class="detail-title">🏖️ L1 · 原材料层：一切的起点</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="d-label">高纯度硅</div><div class="d-value">99.999999999%（11个9纯度），自然界不存在，需人工提纯</div></div>
+      <div class="detail-item"><div class="d-label">SUMCO + 信越化学</div><div class="d-value">两家日企垄断全球硅晶圆 ~55% 市场（2024 年数据）</div></div>
+      <div class="detail-item"><div class="d-label">晶圆制造流程</div><div class="d-value">CZ 法（直拉法）拉单晶 → 切割 → 研磨 → 抛光 → 外延 → 检验</div></div>
+      <div class="detail-item"><div class="d-label">地缘风险</div><div class="d-value">高纯度石英砂关键产地：美国 Spruce Pine（全球 70%+ 供应）</div></div>
+      <div class="detail-item"><div class="d-label">半导体级硅</div><div class="d-value">每 10 亿个硅原子中允许 ≤1 个杂质原子</div></div>
+      <div class="detail-item"><div class="d-label">中国依存度</div><div class="d-value">硅晶圆进口依赖度 >80%，主要来自日本/台湾/德国</div></div>
+    </div>
+    <div class="detail-deps">📌 依赖链路：L1 原材料层 ← 地质资源（高纯度石英矿）← 精炼技术（日本/德国垄断）← 向上供应 L2 所有晶圆需求<br>💡 你的手机/电脑/AI 模型的物理起点，是北卡罗来纳州 Spruce Pine 小镇的地下石英矿。</div>
+  </div>
+
+</div>
+<div class="pyramid-labels">
+  <span>← 底层：物理世界基础</span><span>顶层：数字世界应用 →</span>
+</div>
+
+<!-- ===== Dependency Chain ===== -->
+<div style="max-width:800px;margin:24px auto 0;padding:0 16px;">
+  <div class="section-title"><span class="icon">🔗</span>依赖传导链</div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;padding:16px 0;">
+    <span style="background:rgba(201,149,107,0.15);color:var(--earth);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🏖️ 石英矿</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(201,149,107,0.15);color:var(--earth);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">💎 高纯硅</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(201,149,107,0.15);color:var(--earth);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🪟 晶圆</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(74,222,128,0.12);color:var(--green);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🔬 EUV 光刻</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(74,222,128,0.12);color:var(--green);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">💻 芯片</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(245,158,11,0.12);color:var(--orange);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🖥️ GPU 服务器</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(245,158,11,0.12);color:var(--orange);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🏭 数据中心</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(168,85,247,0.12);color:var(--purple);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🧠 模型训练</span>
+    <span style="color:var(--text2);font-size:1.1rem;">→</span>
+    <span style="background:rgba(34,211,238,0.12);color:var(--cyan);padding:8px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;">🤖 ChatGPT</span>
+  </div>
+  <p style="text-align:center;font-size:0.78rem;color:var(--text2);margin-top:4px;">11 个环节，缺一不可。任何一环断裂 → 全链崩塌。</p>
+</div>
+
+<!-- ===== Key Insights ===== -->
+<div style="max-width:700px;margin:20px auto;padding:0 16px;">
+  <div class="section-title"><span class="icon">💡</span>三条关键洞察</div>
+  <div style="display:grid;gap:12px;">
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:flex-start;gap:12px;">
+      <span style="font-size:1.5rem;flex-shrink:0;">1️⃣</span>
+      <div><div style="font-weight:700;color:var(--text-bright);margin-bottom:4px;">最底层的垄断最致命</div><div style="font-size:0.82rem;color:var(--text2);">应用层百花齐放，原材料层只有两家日本公司。越靠近物理世界，垄断程度越高，替代难度越大。ASML 的 EUV 光刻机不是"贵"，是"地球上只有一家能造"。</div></div>
+    </div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:flex-start;gap:12px;">
+      <span style="font-size:1.5rem;flex-shrink:0;">2️⃣</span>
+      <div><div style="font-weight:700;color:var(--text-bright);margin-bottom:4px;">软件可以弯道超车，硬件不能</div><div style="font-size:0.82rem;color:var(--text2);">DeepSeek 证明了算法创新可以大幅降低成本（1/18），但它依然需要 NVIDIA GPU。软件的优化有上限：最终还是要回到物理世界：谁有光刻机，谁有话语权。</div></div>
+    </div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:flex-start;gap:12px;">
+      <span style="font-size:1.5rem;flex-shrink:0;">3️⃣</span>
+      <div><div style="font-weight:700;color:var(--text-bright);margin-bottom:4px;">AI 的未来不在代码里，在供应链里</div><div style="font-size:0.82rem;color:var(--text2);">GPT-6 能不能训出来，不取决于 OpenAI 有多少聪明的研究员：取决于台积电的 2nm 产线有没有按时投产，取决于 ASML 明年能交付几台 High-NA EUV 光刻机。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Bottleneck Challenge ===== -->
+<div class="bottleneck-section">
+  <div class="section-title"><span class="icon">⚠️</span>瓶颈挑战</div>
+  <p class="bottleneck-desc">如果抽掉某一层，整个金字塔会怎样？点一下试试。</p>
+  <div class="btn-row">
+    <button class="btn-bottleneck btn-l1" onclick="bottleneck('L1')">🗑️ 抽掉 L1 · 原材料</button>
+    <button class="btn-bottleneck btn-l2" onclick="bottleneck('L2')">🗑️ 抽掉 L2 · 制造</button>
+    <button class="btn-bottleneck btn-l3" onclick="bottleneck('L3')">🗑️ 抽掉 L3 · 算力</button>
+    <button class="btn-bottleneck btn-reset" onclick="resetBottleneck()">🔄 重置</button>
+  </div>
+  <div class="bottleneck-msg" id="bottleneck-msg"></div>
+</div>
+
+<!-- ===== CEO Role-Play ===== -->
+<div class="ceo-section">
+  <div class="section-title"><span class="icon">🎮</span>CEO 角色扮演</div>
+  <p class="quiz-hint">你是 AI 公司 CEO，做出你的选择。</p>
+
+  <!-- Scenario 1 -->
+  <div class="scenario-card" id="scenario1">
+    <div class="scenario-header">
+      <span class="scenario-icon">⚡</span>
+      <span class="scenario-title">场景 1 · GPU 配额被砍半</span>
+    </div>
+    <p class="scenario-desc">你是 AI 公司 CEO。今天一大早，供应商通知：你的 GPU 配额被砍掉 50%。模型训练进度表当场作废，团队等着你的决定。怎么办？</p>
+    <div class="choice-buttons">
+      <button class="choice-btn" onclick="chooseScenario('s1','A')"><span class="choice-letter">A</span> 优化算法 (DeepSeek 路线)</button>
+      <button class="choice-btn" onclick="chooseScenario('s1','B')"><span class="choice-letter">B</span> 自研芯片</button>
+      <button class="choice-btn" onclick="chooseScenario('s1','C')"><span class="choice-letter">C</span> 外交谈判</button>
+    </div>
+    <div class="result-panel" id="result-s1-A">
+      <span class="result-icon">🧠</span>
+      <span class="result-highlight">6 个月后：</span>算法团队采用 MoE 架构 + 混合精度训练，模型效率提升 <span class="result-highlight">40%</span>。训练成本降低 <span class="result-highlight">60%</span>，但模型在某些复杂推理任务上性能略降约 5%。公司活下来了，但竞争压力仍在。
+      <br><br><em>💡 启示：软件优化是应对硬件瓶颈的有效杠杆：DeepSeek 证明了这一点。</em>
+    </div>
+    <div class="result-panel" id="result-s1-B">
+      <span class="result-icon">🔧</span>
+      <span class="result-highlight">2 年后：</span>自研芯片终于流片成功，但性能仅为 NVIDIA 同代产品的 <span class="result-warn">40%</span>。项目烧掉 <span class="result-warn">¥50 亿</span>，估值被腰斩。好消息是：你的团队理解了芯片设计的每个细节，为下一代奠定了基础，如果公司还能撑到下一代的话。
+      <br><br><em>💡 启示：芯片自研是十年维度的事。短期自救不能靠它。</em>
+    </div>
+    <div class="result-panel" id="result-s1-C">
+      <span class="result-icon">🤝</span>
+      <span class="result-highlight">经过 3 个月谈判：</span>获准购买降级版 GPU（性能为完整版 <span class="result-highlight">70%</span>），暂时续命。但每年需要续签许可，政策风险悬在头顶。团队士气低落：聪明人开始投简历。
+      <br><br><em>💡 启示：外交是缓兵之计，不能替代技术自主。</em>
+    </div>
+  </div>
+
+  <!-- Scenario 2 -->
+  <div class="scenario-card" id="scenario2">
+    <div class="scenario-header">
+      <span class="scenario-icon">💎</span>
+      <span class="scenario-title">场景 2 · 你突破了 EUV 技术！</span>
+    </div>
+    <p class="scenario-desc">奇迹发生了：你的团队成功突破了 EUV 光刻机的核心技术！你拥有了一项能与 ASML 竞争的专利。现在，你手握改写全球产业链的钥匙。怎么办？</p>
+    <div class="choice-buttons">
+      <button class="choice-btn" onclick="chooseScenario('s2','A')"><span class="choice-letter">A</span> 全球降价 → 抢占市场</button>
+      <button class="choice-btn" onclick="chooseScenario('s2','B')"><span class="choice-letter">B</span> 保持高价 → 回收研发成本</button>
+      <button class="choice-btn" onclick="chooseScenario('s2','C')"><span class="choice-letter">C</span> 开放授权 → 建立标准</button>
+    </div>
+    <div class="result-panel" id="result-s2-A">
+      <span class="result-icon">🚀</span>
+      <span class="result-highlight">3 年内：</span>以 ASML 价格的 60% 出货，迅速拿下 35% 市场份额。全球芯片制造成本下降，AI 训练成本随之降低。但利润率仅 12%，下一轮研发资金紧张。
+      <br><br><em>💡 启示：价格战短期有效，但技术护城河需要利润反哺。</em>
+    </div>
+    <div class="result-panel" id="result-s2-B">
+      <span class="result-icon">💰</span>
+      <span class="result-highlight">前 3 年：</span>利润率 45%，迅速回收 ¥200 亿研发成本。但市场份额仅 8%：客户已经在寻找替代方案。第 4 年，竞争对手的技术差距缩小到 1 代以内。
+      <br><br><em>💡 启示：技术垄断有窗口期。高价策略在窗口关闭前有效，之后就是滑坡。</em>
+    </div>
+    <div class="result-panel" id="result-s2-C">
+      <span class="result-icon">🌐</span>
+      <span class="result-highlight">5 年后：</span>你的技术成为行业标准，全球 60% 的芯片设备兼容你的接口。授权费每年稳定收入 ¥80 亿，多家公司基于你的专利开发衍生技术。你不再是一家设备公司：你是一个生态的缔造者。
+      <br><br><em>💡 启示：ARM 不造芯片，但 ARM 架构统治了移动世界。开放标准是最高形态的护城河。</em>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Strategy Summary ===== -->
+<div style="max-width:700px;margin:20px auto;padding:0 16px;">
+  <div class="section-title"><span class="icon">🗺️</span>CEO 决策矩阵</div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:0.8rem;background:var(--panel);border-radius:12px;overflow:hidden;">
+      <thead>
+        <tr style="background:var(--panel2);">
+          <th style="padding:10px 12px;text-align:left;color:var(--text-bright);font-weight:700;">战略选择</th>
+          <th style="padding:10px 12px;text-align:center;color:var(--text-bright);font-weight:700;">时间周期</th>
+          <th style="padding:10px 12px;text-align:center;color:var(--text-bright);font-weight:700;">成本</th>
+          <th style="padding:10px 12px;text-align:center;color:var(--text-bright);font-weight:700;">确定性</th>
+          <th style="padding:10px 12px;text-align:left;color:var(--text-bright);font-weight:700;">适用场景</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px 12px;color:var(--purple);font-weight:700;">算法优化</td>
+          <td style="padding:10px 12px;text-align:center;">6-12 月</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--green);">低</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--green);">高</td>
+          <td style="padding:10px 12px;">GPU 受限但有人才 → DeepSeek 路线</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px 12px;color:var(--orange);font-weight:700;">自研芯片</td>
+          <td style="padding:10px 12px;text-align:center;">3-10 年</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--red);">极高</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--red);">低</td>
+          <td style="padding:10px 12px;">主权国家或顶级巨头 → 长期国策</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px 12px;color:var(--cyan);font-weight:700;">外交谈判</td>
+          <td style="padding:10px 12px;text-align:center;">1-6 月</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--amber);">中</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--amber);">中</td>
+          <td style="padding:10px 12px;">短期过渡 → 争取技术攻关时间</td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);">
+          <td style="padding:10px 12px;color:var(--green);font-weight:700;">开放标准</td>
+          <td style="padding:10px 12px;text-align:center;">5-15 年</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--green);">中</td>
+          <td style="padding:10px 12px;text-align:center;color:var(--green);">高</td>
+          <td style="padding:10px 12px;">技术领先者 → ARM 模式</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="text-align:center;font-size:0.78rem;color:var(--text2);margin-top:10px;">
+    💡 没有"正确"答案：只有与你的资源、时间和风险偏好匹配的选择。
+  </p>
+</div>
+
+<!-- ===== Footer ===== -->
+<div style="text-align:center;padding:20px;color:var(--text2);font-size:0.75rem;">
+  AI 夏令营 · 第8课 · 产业链互动金字塔 · 纯 HTML/CSS/JS
+</div>
+
+<script>
+/* ===== Layer Expand/Collapse ===== */
+function toggleLayer(el) {
+  const layer = el.dataset.layer;
+  const detail = document.getElementById('detail-' + layer);
+  const wasExpanded = el.classList.contains('expanded');
+
+  // close all
+  document.querySelectorAll('.pyramid-layer.expanded').forEach(l => l.classList.remove('expanded'));
+  document.querySelectorAll('.layer-detail.active').forEach(d => d.classList.remove('active'));
+
+  // open clicked (if wasn't already)
+  if (!wasExpanded) {
+    el.classList.add('expanded');
+    detail.classList.add('active');
+  }
+}
+
+/* ===== Bottleneck Simulation ===== */
+const bottleneckMessages = {
+  L1: '🏖️ 抽掉 L1 原材料 → 信越化学停产 → 全球晶圆断供 → <b>台积电无米下锅</b> → NVIDIA 没有芯片 → 所有 AI 模型无法训练 → <b>ChatGPT 只能活在历史里</b>',
+  L2: '🔬 抽掉 L2 制造 → ASML 光刻机消失 → 台积电 3nm 产线停摆 → NVIDIA H100 无法制造 → 全球算力腰斩 → <b>GPT-6 训练无限期推迟</b>',
+  L3: '⚡ 抽掉 L3 算力 → NVIDIA GPU 断供 → 数据中心闲置 → GPT-4/DeepSeek 无法训练 → <b>整个 AI 行业回到 2015 年水平</b> → 应用层全部降级'
+};
+
+const cascadeOrder = {
+  L1: ['L1','L2','L3','L4','L5'],
+  L2: ['L2','L3','L4','L5'],
+  L3: ['L3','L4','L5']
+};
+
+function bottleneck(layer) {
+  // reset first
+  resetBottleneck(false);
+
+  const msg = bottleneckMessages[layer];
+  const msgEl = document.getElementById('bottleneck-msg');
+  msgEl.innerHTML = '💥 ' + msg;
+  msgEl.classList.add('show');
+
+  const order = cascadeOrder[layer];
+  order.forEach((l, i) => {
+    setTimeout(() => {
+      const el = document.querySelector(`.pyramid-layer[data-layer="${l}"]`);
+      if (el) {
+        el.classList.add(i === 0 ? 'collapsed' : 'collapsed-cascade');
+      }
+    }, i * 300);
+  });
+}
+
+function resetBottleneck(showMsg) {
+  document.querySelectorAll('.pyramid-layer.collapsed, .pyramid-layer.collapsed-cascade')
+    .forEach(el => { el.classList.remove('collapsed', 'collapsed-cascade'); });
+  const msgEl = document.getElementById('bottleneck-msg');
+  msgEl.classList.remove('show');
+  if (showMsg !== false) {
+    msgEl.innerHTML = '✅ 已重置：金字塔恢复完整';
+    msgEl.classList.add('show');
+    msgEl.style.color = 'var(--green)';
+    setTimeout(() => {
+      msgEl.classList.remove('show');
+      msgEl.style.color = '';
+    }, 2000);
+  }
+}
+
+/* ===== CEO Role-Play ===== */
+function chooseScenario(scenario, choice) {
+  const prefix = 'result-' + scenario + '-';
+
+  // hide all results in this scenario card
+  const card = document.getElementById('scenario' + scenario.slice(1));
+  card.querySelectorAll('.result-panel').forEach(p => p.classList.remove('show'));
+
+  // deselect all buttons in this card
+  card.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+
+  // show selected result
+  const resultEl = document.getElementById(prefix + choice);
+  if (resultEl) resultEl.classList.add('show');
+
+  // highlight selected button
+  const buttons = card.querySelectorAll('.choice-btn');
+  const choiceIndex = { A: 0, B: 1, C: 2 }[choice];
+  if (buttons[choiceIndex]) buttons[choiceIndex].classList.add('selected');
+}
+</script>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>ChatGPT 背后站着什么？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：沙子 → 硅 → 晶圆 → 光刻机 → 芯片 → GPU → 数据中心 → 模型 → App，五层缺一不可。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson7-industry-heatmap.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">行业热力图</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">AI 渗透了医疗、科学、创作……每个有数据的行业</div></a><a href="lesson9-investment-machine.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">投资时光机</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">产业链顶端的公司值多少钱？全世界的钱在押注什么？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">摩尔定律在减速，光刻机成了政治筹码：当「变快」不再免费，产业链的瓶颈在哪，谁说了算？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
