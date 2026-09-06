@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>涂鸦识别 + 卷积可视化：看卷积核怎么"看"你的画</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f1a;
+  --panel: #1a1a2e;
+  --panel2: #16213e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --green: #4ade80;
+  --orange: #f0a500;
+  --purple: #e8795f;
+  --cyan: #22d3ee;
+  --text: #e0e0e0;
+  --text2: #a0a0b8;
+  --border: #2a2a4a;
+  --active: #22d3ee;
+}
+
+body {
+  font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.app-header h1 {
+  font-size: 1.25rem;
+  background: linear-gradient(90deg, var(--orange), #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.app-header .subtitle { font-size: 0.72rem; color: var(--text2); }
+
+.nav-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.btn:hover { border-color: var(--orange); color: #fff; }
+.btn:active { transform: scale(0.97); }
+.btn.active { background: var(--active); border-color: var(--active); color: #fff; }
+.btn.accent { background: var(--orange); border-color: var(--orange); color: #0f0f1a; font-weight: 600; }
+.btn.accent:hover { filter: brightness(1.15); }
+.btn.small { padding: 3px 8px; font-size: 0.7rem; border-radius: 4px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.main-container {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  min-height: calc(100vh - 140px);
+}
+@media (max-width: 1020px) {
+  .main-container { flex-direction: column; align-items: center; }
+  .draw-panel { width: 100% !important; max-width: 400px; }
+  .conv-panel { width: 100% !important; max-width: 560px; }
+  .ctrl-panel { width: 100% !important; max-width: 560px; }
+}
+
+/* ===== DRAW PANEL ===== */
+.draw-panel {
+  flex: 0 0 320px;
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.draw-panel h3 {
+  font-size: 0.85rem;
+  color: var(--orange);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: space-between;
+}
+.draw-panel h3 span { font-size: 0.65rem; color: var(--text2); font-weight: normal; }
+
+.canvas-wrapper {
+  position: relative;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(240,165,0,0.1);
+  touch-action: none;
+}
+.canvas-wrapper canvas {
+  display: block;
+  background: #000;
+  cursor: crosshair;
+  touch-action: none;
+}
+.draw-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.brush-size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--text2);
+  width: 100%;
+}
+.brush-size-row input[type=range] {
+  flex: 1;
+  accent-color: var(--orange);
+}
+.template-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+.template-btn {
+  width: 36px; height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.template-btn:hover { border-color: var(--orange); color: var(--orange); }
+.template-btn.active { background: var(--orange); border-color: var(--orange); color: #0f0f1a; font-weight: 700; }
+
+/* ===== CONV PANEL ===== */
+.conv-panel {
+  flex: 1;
+  min-width: 380px;
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.conv-panel h3 {
+  font-size: 0.85rem;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+}
+.conv-grid-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  flex: 1;
+  align-items: start;
+}
+.input-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.input-preview canvas {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+.input-preview span {
+  font-size: 0.62rem;
+  color: var(--text2);
+}
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+  min-height: 280px;
+}
+.heatmap-cell {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px;
+}
+.heatmap-cell:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(34,211,238,0.2);
+}
+.heatmap-cell canvas {
+  image-rendering: pixelated;
+  border-radius: 4px;
+}
+.heatmap-cell .hm-label {
+  font-size: 0.58rem;
+  color: var(--text2);
+  margin-top: 4px;
+  text-align: center;
+  line-height: 1.3;
+}
+.heatmap-cell .hm-act {
+  font-size: 0.7rem;
+  color: var(--cyan);
+  margin-top: 2px;
+}
+
+/* ===== CTRL PANEL ===== */
+.ctrl-panel {
+  flex: 0 0 260px;
+  background: var(--panel);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ctrl-panel h3 {
+  font-size: 0.85rem;
+  color: var(--purple);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ctrl-section { display: flex; flex-direction: column; gap: 6px; }
+.ctrl-section label {
+  font-size: 0.68rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.kernel-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.gan-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: rgba(240,165,0,0.05);
+}
+.upload-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.upload-result {
+  display: none;
+  margin-top: 8px;
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.modal-close:hover { opacity: 1; color: var(--red); }
+.modal-content h3 { color: var(--cyan); margin-bottom: 12px; }
+.modal-content canvas { image-rendering: pixelated; }
+
+.edge-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.edge-item {
+  text-align: center;
+}
+.edge-item span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text2);
+  margin-top: 6px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulse { animation: pulse 2s infinite; }
+
+.info-hint {
+  font-size: 0.6rem;
+  color: var(--text2);
+  text-align: center;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson4-neural-network.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson6-llm-viz.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<!-- HEADER -->
+<header class="app-header">
+  <div>
+    <h1>🖌️ 涂鸦识别 + 卷积可视化</h1>
+    <div class="subtitle">第5课：看卷积核怎么"看"你的画</div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="window.history.back()">← 返回</button>
+    <button class="btn small" onclick="openEdgeModal()" id="btnEdge" disabled>📷 边缘检测结果</button>
+    <button class="btn small" onclick="openGANModal()">🎬 GAN 动画</button>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="main-container">
+
+  <!-- LEFT: DRAW CANVAS -->
+  <div class="draw-panel" id="drawPanel">
+    <h3>✏️ 画布 <span>280×280 → 28×28</span></h3>
+    <div class="canvas-wrapper">
+      <canvas id="drawCanvas" width="280" height="280"></canvas>
+    </div>
+    <div class="brush-size-row">
+      <span>画笔:</span>
+      <input type="range" id="brushSize" min="2" max="20" value="6" step="1">
+      <span id="brushSizeVal">6px</span>
+    </div>
+    <div class="draw-tools">
+      <button class="btn small" id="btnClear">🗑️ 清除</button>
+      <button class="btn small" id="btnEraser">🧹 橡皮</button>
+      <button class="btn small" id="btnInvColors">🔄 反色</button>
+    </div>
+    <div style="font-size:0.6rem;color:var(--text2);text-align:center">描摹模板（可选）↓</div>
+    <div class="template-row" id="templateRow"></div>
+    <div class="info-hint">画一个数字，右边热力图实时更新</div>
+  </div>
+
+  <!-- MIDDLE: CONV HEATMAPS -->
+  <div class="conv-panel" id="convPanel">
+    <h3>🔥 卷积核激活热力图 <span style="font-size:0.62rem;color:var(--text2)">"探测器看到了什么?"</span></h3>
+    <div class="conv-grid-wrapper">
+      <div class="input-preview">
+        <canvas id="inputPreview" width="140" height="140"></canvas>
+        <span>28×28 输入</span>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid">
+        <div class="heatmap-cell" data-kernel="0" id="hmCell0">
+          <canvas id="hmCanvas0" width="120" height="120"></canvas>
+          <div class="hm-label">水平边缘</div>
+          <div class="hm-act" id="hmAct0">0.00</div>
+        </div>
+        <div class="heatmap-cell" data-kernel="1" id="hmCell1">
+          <canvas id="hmCanvas1" width="120" height="120"></canvas>
+          <div class="hm-label">垂直边缘</div>
+          <div class="hm-act" id="hmAct1">0.00</div>
+        </div>
+        <div class="heatmap-cell" data-kernel="2" id="hmCell2">
+          <canvas id="hmCanvas2" width="120" height="120"></canvas>
+          <div class="hm-label">对角线 ↘</div>
+          <div class="hm-act" id="hmAct2">0.00</div>
+        </div>
+        <div class="heatmap-cell" data-kernel="3" id="hmCell3">
+          <canvas id="hmCanvas3" width="120" height="120"></canvas>
+          <div class="hm-label">角点检测</div>
+          <div class="hm-act" id="hmAct3">0.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: CONTROLS -->
+  <div class="ctrl-panel">
+    <h3>🎛️ 控制面板</h3>
+
+    <div class="ctrl-section">
+      <label>卷积核选择（放大查看）</label>
+      <div class="kernel-select">
+        <button class="btn small active" data-kid="0" onclick="selectKernel(0)">水平边缘</button>
+        <button class="btn small" data-kid="1" onclick="selectKernel(1)">垂直边缘</button>
+        <button class="btn small" data-kid="2" onclick="selectKernel(2)">对角线</button>
+        <button class="btn small" data-kid="3" onclick="selectKernel(3)">角点</button>
+      </div>
+    </div>
+
+    <div class="ctrl-section">
+      <label>激活显示模式</label>
+      <select id="actMode" onchange="updateAllHeatmaps()">
+        <option value="abs">绝对值 (|激活|)</option>
+        <option value="pos">仅正激活</option>
+        <option value="raw">原始值 (+/−)</option>
+      </select>
+    </div>
+
+    <div class="ctrl-section">
+      <label>📷 上传照片做边缘检测</label>
+      <div class="upload-zone" id="uploadZone">
+        📁 点击上传 或 拖拽图片到此处
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <div class="upload-result" id="uploadResult">
+        <span style="font-size:0.65rem;color:var(--green)">✅ 图片已加载</span>
+        <button class="btn small accent" onclick="openEdgeModal()">🔍 查看边缘检测</button>
+      </div>
+    </div>
+
+    <div class="ctrl-section">
+      <label>🎬 GAN 生成动画</label>
+      <div class="gan-controls">
+        <button class="btn small accent" onclick="openGANModal()">▶ 播放</button>
+      </div>
+      <span style="font-size:0.6rem;color:var(--text2)">看 AI 怎么从噪声"画"出数字</span>
+    </div>
+
+    <div style="margin-top:auto;font-size:0.6rem;color:var(--text2);text-align:center">
+      💡 点击热力图可放大查看<br>
+      💡 在画布上画一笔就实时更新
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Enlarged Heatmap -->
+<div class="modal-overlay" id="modalHeatmap" style="display:none" onclick="if(event.target===this)closeModal('modalHeatmap')">
+  <div class="modal-content" style="text-align:center">
+    <button class="modal-close" onclick="closeModal('modalHeatmap')">&times;</button>
+    <h3 id="modalHeatmapTitle">卷积核激活热力图</h3>
+    <div id="modalHeatmapContent"></div>
+    <div style="font-size:0.7rem;color:var(--text2);margin-top:8px">冷色=低激活/负值 · 暖色=高激活/正值</div>
+  </div>
+</div>
+
+<!-- MODAL: Edge Detection -->
+<div class="modal-overlay" id="modalEdge" style="display:none" onclick="if(event.target===this)closeModal('modalEdge')">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal('modalEdge')">&times;</button>
+    <h3>📷 Sobel 边缘检测：原图 → 灰度 → 边缘</h3>
+    <div class="edge-row" id="edgeRow">
+      <div class="edge-item"><canvas id="edgeOrig" width="200" height="200"></canvas><span>原图</span></div>
+      <div class="edge-item"><span style="font-size:1.2rem">→</span></div>
+      <div class="edge-item"><canvas id="edgeGray" width="200" height="200"></canvas><span>灰度 28×28</span></div>
+      <div class="edge-item"><span style="font-size:1.2rem">→</span></div>
+      <div class="edge-item"><canvas id="edgeResult" width="200" height="200"></canvas><span>边缘检测</span></div>
+    </div>
+    <p style="font-size:0.65rem;color:var(--text2);margin-top:10px;text-align:center">
+      用两个 Sobel 核（Gx 水平 + Gy 垂直）计算梯度 → 边缘 = √(Gx² + Gy²)
+    </p>
+  </div>
+</div>
+
+<!-- MODAL: GAN Animation -->
+<div class="modal-overlay" id="modalGAN" style="display:none" onclick="if(event.target===this)closeModal('modalGAN')">
+  <div class="modal-content" style="text-align:center">
+    <button class="modal-close" onclick="closeModal('modalGAN')">&times;</button>
+    <h3>🎬 GAN 生成动画：从噪声到数字</h3>
+    <canvas id="ganCanvas" width="280" height="280" style="background:#000;border-radius:8px;image-rendering:pixelated"></canvas>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+      <button class="btn small accent" id="ganPlayBtn" onclick="toggleGAN()">▶ 播放</button>
+      <button class="btn small" onclick="resetGAN()">🔄 重置</button>
+      <button class="btn small" id="ganLoopBtn" onclick="toggleGANLoop()">🔁 循环: 开</button>
+      <label style="font-size:0.7rem;color:var(--text2)">速度:
+        <input type="range" id="ganSpeed" min="1" max="10" value="5" style="width:80px;accent-color:var(--orange)" oninput="ganSpeed=parseInt(this.value)">
+      </label>
+      <span style="font-size:0.65rem;color:var(--text2)" id="ganFrameLabel">帧: 0/40</span>
+    </div>
+    <p style="font-size:0.6rem;color:var(--text2);margin-top:8px">
+      模拟 GAN 去噪：从随机噪声开始，逐步"清理"成数字形状
+    </p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONVOLUTION KERNELS
+// ============================================================
+const KERNELS = [
+  { // 0: Horizontal edge (Sobel Gx)
+    name: '水平边缘检测',
+    matrix: [[-1,-1,-1],[0,0,0],[1,1,1]],
+    color: '#f0a500'
+  },
+  { // 1: Vertical edge (Sobel Gy)
+    name: '垂直边缘检测',
+    matrix: [[-1,0,1],[-1,0,1],[-1,0,1]],
+    color: '#3b82f6'
+  },
+  { // 2: Diagonal ↘
+    name: '对角线检测 ↘',
+    matrix: [[-2,-1,0],[-1,0,1],[0,1,2]],
+    color: '#e8795f'
+  },
+  { // 3: Corner detection
+    name: '角点检测',
+    matrix: [[-1,-2,-1],[-2,12,-2],[-1,-2,-1]],
+    color: '#4ade80'
+  }
+];
+
+// ============================================================
+//  DRAW CANVAS SETUP
+// ============================================================
+const drawCanvas = document.getElementById('drawCanvas');
+const drawCtx = drawCanvas.getContext('2d');
+let drawing = false;
+let eraserMode = false;
+let brushSize = 6;
+let selectedTemplate = -1; // -1 = none
+
+// Initialize black canvas
+drawCtx.fillStyle = '#000';
+drawCtx.fillRect(0, 0, 280, 280);
+drawCtx.strokeStyle = '#fff';
+drawCtx.lineWidth = brushSize;
+drawCtx.lineCap = 'round';
+drawCtx.lineJoin = 'round';
+
+function getPos(e) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const scaleX = 280 / rect.width;
+  const scaleY = 280 / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  drawing = true;
+  const pos = getPos(e);
+  drawCtx.beginPath();
+  drawCtx.moveTo(pos.x, pos.y);
+  drawCtx.strokeStyle = eraserMode ? '#000' : '#fff';
+  drawCtx.lineWidth = eraserMode ? brushSize * 2 : brushSize;
+}
+
+function moveDraw(e) {
+  e.preventDefault();
+  if (!drawing) return;
+  const pos = getPos(e);
+  drawCtx.lineTo(pos.x, pos.y);
+  drawCtx.stroke();
+}
+
+function endDraw(e) {
+  if (!drawing) return;
+  drawing = false;
+  drawCtx.closePath();
+  updateAllHeatmaps();
+}
+
+drawCanvas.addEventListener('mousedown', startDraw);
+drawCanvas.addEventListener('mousemove', moveDraw);
+drawCanvas.addEventListener('mouseup', endDraw);
+drawCanvas.addEventListener('mouseleave', endDraw);
+drawCanvas.addEventListener('touchstart', startDraw, {passive: false});
+drawCanvas.addEventListener('touchmove', moveDraw, {passive: false});
+drawCanvas.addEventListener('touchend', endDraw);
+
+// Brush size
+document.getElementById('brushSize').addEventListener('input', function() {
+  brushSize = parseInt(this.value);
+  document.getElementById('brushSizeVal').textContent = brushSize + 'px';
+});
+
+// Clear
+document.getElementById('btnClear').addEventListener('click', () => {
+  drawCtx.fillStyle = '#000';
+  drawCtx.fillRect(0, 0, 280, 280);
+  if (selectedTemplate >= 0) drawTemplate(selectedTemplate);
+  updateAllHeatmaps();
+});
+
+// Eraser toggle
+document.getElementById('btnEraser').addEventListener('click', function() {
+  eraserMode = !eraserMode;
+  this.classList.toggle('active', eraserMode);
+  this.textContent = eraserMode ? '🧹 橡皮 (开)' : '🧹 橡皮';
+});
+
+// Invert colors
+document.getElementById('btnInvColors').addEventListener('click', () => {
+  const imgData = drawCtx.getImageData(0, 0, 280, 280);
+  const d = imgData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const inverted = 255 - d[i];
+    d[i] = inverted;
+    d[i+1] = inverted;
+    d[i+2] = inverted;
+  }
+  drawCtx.putImageData(imgData, 0, 0);
+  updateAllHeatmaps();
+});
+
+// ============================================================
+//  DIGIT TEMPLATES (vector outlines for 0-9, 280x280)
+// ============================================================
+function digitPath(ctx, digit) {
+  const w = 280, h = 280;
+  const cx = w/2, cy = h/2;
+  const r = 100;
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+
+  switch(digit) {
+    case 0:
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 70, 100, 0, 0, Math.PI*2);
+      ctx.stroke();
+      break;
+    case 1:
+      ctx.beginPath();
+      ctx.moveTo(cx - 15, cy - 85);
+      ctx.lineTo(cx - 15, cy + 85);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 45, cy - 60);
+      ctx.lineTo(cx - 15, cy - 85);
+      ctx.stroke();
+      break;
+    case 2:
+      ctx.beginPath();
+      ctx.arc(cx, cy - 50, 55, Math.PI*0.2, Math.PI*0.8, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 45, cy - 20);
+      ctx.lineTo(cx + 35, cy + 30);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 45, cy + 55);
+      ctx.lineTo(cx + 45, cy + 55);
+      ctx.stroke();
+      break;
+    case 3:
+      ctx.beginPath();
+      ctx.arc(cx, cy - 50, 50, Math.PI*0.3, Math.PI*1.8, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy + 30, 45, Math.PI*1.2, Math.PI*2.6, false);
+      ctx.stroke();
+      break;
+    case 4:
+      ctx.beginPath();
+      ctx.moveTo(cx + 10, cy - 80);
+      ctx.lineTo(cx - 70, cy + 10);
+      ctx.lineTo(cx + 70, cy + 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy - 40);
+      ctx.lineTo(cx - 10, cy + 80);
+      ctx.stroke();
+      break;
+    case 5:
+      ctx.beginPath();
+      ctx.moveTo(cx + 40, cy - 80);
+      ctx.lineTo(cx - 50, cy - 80);
+      ctx.lineTo(cx - 50, cy - 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx + 10, cy + 10, 45, Math.PI*0.8, Math.PI*1.9, false);
+      ctx.stroke();
+      break;
+    case 6:
+      ctx.beginPath();
+      ctx.arc(cx, cy - 10, 45, Math.PI*0.4, Math.PI*2.2, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 30, 40, 55, 0, Math.PI*0.3, Math.PI*1.7, false);
+      ctx.stroke();
+      break;
+    case 7:
+      ctx.beginPath();
+      ctx.moveTo(cx - 60, cy - 80);
+      ctx.lineTo(cx + 40, cy - 80);
+      ctx.lineTo(cx - 20, cy + 80);
+      ctx.stroke();
+      break;
+    case 8:
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 40, 45, 55, 0, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 40, 45, 55, 0, 0, Math.PI*2);
+      ctx.stroke();
+      break;
+    case 9:
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 10, 40, 55, 0, Math.PI*1.3, Math.PI*2.8, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy - 30, 45, Math.PI*0.8, Math.PI*1.7, false);
+      ctx.stroke();
+      break;
+  }
+}
+
+function drawTemplate(digit) {
+  // Save current drawing, draw template on top
+  digitPath(drawCtx, digit);
+}
+
+function clearTemplate() {
+  // Redraw everything without template - we can't easily "undo" template lines
+  // Instead we just redraw. But that loses user strokes. Better: just clear and let user redraw.
+  // Actually templates are meant to be guides - we re-render when template changes
+}
+
+// Build template buttons
+const templateRow = document.getElementById('templateRow');
+for (let d = 0; d <= 9; d++) {
+  const btn = document.createElement('button');
+  btn.className = 'template-btn';
+  btn.textContent = d;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+    if (selectedTemplate === d) {
+      selectedTemplate = -1;
+    } else {
+      selectedTemplate = d;
+      btn.classList.add('active');
+    }
+    // Redraw: clear, then draw template
+    drawCtx.fillStyle = '#000';
+    drawCtx.fillRect(0, 0, 280, 280);
+    if (selectedTemplate >= 0) drawTemplate(selectedTemplate);
+    updateAllHeatmaps();
+  });
+  templateRow.appendChild(btn);
+}
+
+// ============================================================
+//  IMAGE PROCESSING: 280x280 → 28x28 grayscale
+// ============================================================
+function get28x28Input() {
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 28;
+  offCanvas.height = 28;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.imageSmoothingEnabled = true;
+  offCtx.drawImage(drawCanvas, 0, 0, 280, 280, 0, 0, 28, 28);
+  const imgData = offCtx.getImageData(0, 0, 28, 28);
+  const result = [];
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    result.push(imgData.data[i] / 255); // Normalize 0-1
+  }
+  return result; // length 784, row-major
+}
+
+function conv2d(input28, kernel) {
+  // input28: 28x28, kernel: 3x3, stride=1, valid padding → output 26x26
+  const outH = 26, outW = 26;
+  const result = new Float32Array(outH * outW);
+  for (let oy = 0; oy < outH; oy++) {
+    for (let ox = 0; ox < outW; ox++) {
+      let sum = 0;
+      for (let ky = 0; ky < 3; ky++) {
+        for (let kx = 0; kx < 3; kx++) {
+          const iy = oy + ky;
+          const ix = ox + kx;
+          sum += input28[iy * 28 + ix] * kernel[ky][kx];
+        }
+      }
+      result[oy * outW + ox] = sum;
+    }
+  }
+  return { data: result, w: outW, h: outH };
+}
+
+// ============================================================
+//  HEATMAP RENDERING
+// ============================================================
+function drawHeatmap(canvasId, convResult, kernelIndex) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const { data, w, h } = convResult;
+  const actMode = document.getElementById('actMode').value;
+
+  // Find max absolute activation for normalization
+  let maxAbs = 0;
+  let sumAbs = 0;
+  for (let i = 0; i < data.length; i++) {
+    const abs = Math.abs(data[i]);
+    if (abs > maxAbs) maxAbs = abs;
+    sumAbs += abs;
+  }
+  const meanAct = sumAbs / data.length;
+
+  // Update activation label
+  const actEl = document.getElementById('hmAct' + kernelIndex);
+  if (actEl) actEl.textContent = (meanAct * 100).toFixed(1) + '%';
+
+  const imgData = ctx.createImageData(w, h);
+  for (let i = 0; i < data.length; i++) {
+    let v = data[i];
+    let intensity;
+
+    switch(actMode) {
+      case 'pos':
+        intensity = Math.max(0, v) / (maxAbs || 1);
+        break;
+      case 'raw':
+        intensity = v / (maxAbs || 1); // -1 to 1
+        break;
+      case 'abs':
+      default:
+        intensity = Math.abs(v) / (maxAbs || 1);
+        break;
+    }
+
+    // Color map: cool (blue/cyan) for low, warm (yellow/red) for high
+    const r = Math.floor(intensity * 255);
+    const g = Math.floor(intensity * 100);
+    const b = Math.floor((1 - intensity) * 200 + 55);
+
+    // For raw mode with negative values, use blue for negative, red for positive
+    if (actMode === 'raw' && v < 0) {
+      const ni = Math.min(1, Math.abs(v) / (maxAbs || 1));
+      imgData.data[i*4] = Math.floor(ni * 80);      // R
+      imgData.data[i*4+1] = Math.floor(ni * 180);    // G
+      imgData.data[i*4+2] = Math.floor(ni * 255);    // B
+    } else {
+      imgData.data[i*4] = r;
+      imgData.data[i*4+1] = g;
+      imgData.data[i*4+2] = b;
+    }
+    imgData.data[i*4+3] = 255;
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function drawInputPreview(input28) {
+  const canvas = document.getElementById('inputPreview');
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.createImageData(28, 28);
+  for (let i = 0; i < input28.length; i++) {
+    const v = Math.floor(input28[i] * 255);
+    imgData.data[i*4] = v;
+    imgData.data[i*4+1] = v;
+    imgData.data[i*4+2] = v;
+    imgData.data[i*4+3] = 255;
+  }
+  // Scale up for display
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 28;
+  offCanvas.height = 28;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.putImageData(imgData, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 140, 140);
+  ctx.drawImage(offCanvas, 0, 0, 28, 28, 0, 0, 140, 140);
+}
+
+function updateAllHeatmaps() {
+  const input28 = get28x28Input();
+  drawInputPreview(input28);
+
+  for (let k = 0; k < 4; k++) {
+    const convResult = conv2d(input28, KERNELS[k].matrix);
+    drawHeatmap('hmCanvas' + k, convResult, k);
+  }
+}
+
+// ============================================================
+//  HEATMAP CELL CLICK → MODAL
+// ============================================================
+let selectedKernelIdx = 0;
+
+function selectKernel(idx) {
+  selectedKernelIdx = idx;
+  document.querySelectorAll('.kernel-select .btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.kernel-select .btn[data-kid="${idx}"]`).classList.add('active');
+}
+
+// Click on heatmap cells → open large view
+for (let i = 0; i < 4; i++) {
+  document.getElementById('hmCell' + i).addEventListener('click', () => {
+    openHeatmapModal(i);
+  });
+}
+
+function openHeatmapModal(kernelIdx) {
+  selectKernel(kernelIdx);
+  const modal = document.getElementById('modalHeatmap');
+  document.getElementById('modalHeatmapTitle').textContent =
+    '🔍 ' + KERNELS[kernelIdx].name + '：卷积核激活热力图';
+
+  // Create large canvas
+  const container = document.getElementById('modalHeatmapContent');
+  container.innerHTML = '';
+
+  const input28 = get28x28Input();
+  const convResult = conv2d(input28, KERNELS[kernelIdx].matrix);
+
+  // Show kernel matrix
+  const matrixDiv = document.createElement('div');
+  matrixDiv.style.cssText = 'margin-bottom:12px;font-family:monospace;font-size:14px;color:var(--cyan)';
+  matrixDiv.innerHTML = '<div style="font-size:0.7rem;color:var(--text2);margin-bottom:4px">卷积核 (3×3):</div>';
+  const matrixTable = document.createElement('table');
+  matrixTable.style.cssText = 'margin:0 auto;border-collapse:collapse';
+  for (let row of KERNELS[kernelIdx].matrix) {
+    const tr = document.createElement('tr');
+    for (let val of row) {
+      const td = document.createElement('td');
+      td.style.cssText = 'padding:3px 10px;text-align:center;border:1px solid var(--border)';
+      td.textContent = val >= 0 ? '+' + val : val;
+      tr.appendChild(td);
+    }
+    matrixTable.appendChild(tr);
+  }
+  matrixDiv.appendChild(matrixTable);
+  container.appendChild(matrixDiv);
+
+  // Large heatmap canvas (26x26 scaled to 320x320)
+  const bigCanvas = document.createElement('canvas');
+  bigCanvas.width = 320;
+  bigCanvas.height = 320;
+  bigCanvas.style.cssText = 'image-rendering:pixelated;border-radius:8px;border:1px solid var(--border)';
+  const bigCtx = bigCanvas.getContext('2d');
+
+  const { data, w, h } = convResult;
+  let maxAbs = 0;
+  for (let i = 0; i < data.length; i++) {
+    const abs = Math.abs(data[i]);
+    if (abs > maxAbs) maxAbs = abs;
+  }
+
+  const actMode = document.getElementById('actMode').value;
+  const imgData = bigCtx.createImageData(w, h);
+  for (let i = 0; i < data.length; i++) {
+    let v = data[i], intensity;
+    switch(actMode) {
+      case 'pos': intensity = Math.max(0, v) / (maxAbs || 1); break;
+      case 'raw': intensity = v / (maxAbs || 1); break;
+      default: intensity = Math.abs(v) / (maxAbs || 1); break;
+    }
+    if (actMode === 'raw' && v < 0) {
+      const ni = Math.min(1, Math.abs(v) / (maxAbs || 1));
+      imgData.data[i*4] = Math.floor(ni * 80);
+      imgData.data[i*4+1] = Math.floor(ni * 180);
+      imgData.data[i*4+2] = Math.floor(ni * 255);
+    } else {
+      imgData.data[i*4] = Math.floor(intensity * 255);
+      imgData.data[i*4+1] = Math.floor(intensity * 100);
+      imgData.data[i*4+2] = Math.floor((1 - intensity) * 200 + 55);
+    }
+    imgData.data[i*4+3] = 255;
+  }
+  bigCtx.putImageData(imgData, 0, 0);
+
+  // Scale up display
+  const displayCanvas = document.createElement('canvas');
+  displayCanvas.width = 320;
+  displayCanvas.height = 320;
+  const dctx = displayCanvas.getContext('2d');
+  dctx.imageSmoothingEnabled = false;
+  dctx.drawImage(bigCanvas, 0, 0, 26, 26, 0, 0, 320, 320);
+  container.appendChild(displayCanvas);
+
+  modal.style.display = 'flex';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// ============================================================
+//  PHOTO UPLOAD + EDGE DETECTION
+// ============================================================
+let uploadedImage = null;
+
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', (e) => {
+  if (e.target !== fileInput) fileInput.click();
+});
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+fileInput.addEventListener('change', (e) => {
+  if (fileInput.files[0]) processFile(fileInput.files[0]);
+});
+
+function processFile(file) {
+  if (!file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      uploadedImage = img;
+      document.getElementById('uploadResult').style.display = 'block';
+      document.getElementById('btnEdge').disabled = false;
+      renderEdgeDetection();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderEdgeDetection() {
+  if (!uploadedImage) return;
+
+  // 1. Original
+  const origCanvas = document.getElementById('edgeOrig');
+  const origCtx = origCanvas.getContext('2d');
+  origCtx.clearRect(0, 0, 200, 200);
+  const scale = Math.min(200 / uploadedImage.width, 200 / uploadedImage.height);
+  const dw = uploadedImage.width * scale;
+  const dh = uploadedImage.height * scale;
+  const dx = (200 - dw) / 2;
+  const dy = (200 - dh) / 2;
+  origCtx.drawImage(uploadedImage, dx, dy, dw, dh);
+
+  // 2. Grayscale 28x28
+  const grayCanvas = document.getElementById('edgeGray');
+  const grayCtx = grayCanvas.getContext('2d');
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 28; offCanvas.height = 28;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.drawImage(uploadedImage, 0, 0, 28, 28);
+  const grayData = offCtx.getImageData(0, 0, 28, 28);
+  const grayArr = [];
+  for (let i = 0; i < grayData.data.length; i += 4) {
+    const g = 0.299 * grayData.data[i] + 0.587 * grayData.data[i+1] + 0.114 * grayData.data[i+2];
+    grayArr.push(g / 255);
+    grayData.data[i] = g; grayData.data[i+1] = g; grayData.data[i+2] = g;
+  }
+  offCtx.putImageData(grayData, 0, 0);
+  grayCtx.imageSmoothingEnabled = false;
+  grayCtx.clearRect(0, 0, 200, 200);
+  grayCtx.drawImage(offCanvas, 0, 0, 28, 28, 0, 0, 200, 200);
+
+  // 3. Sobel edge detection
+  // Gx = [[-1,0,1],[-2,0,2],[-1,0,1]], Gy = [[-1,-2,-1],[0,0,0],[1,2,1]]
+  const sobelGx = [[-1,0,1],[-2,0,2],[-1,0,1]];
+  const sobelGy = [[-1,-2,-1],[0,0,0],[1,2,1]];
+  const edgeData = new Float32Array(26 * 26);
+  let maxEdge = 0;
+  for (let y = 0; y < 26; y++) {
+    for (let x = 0; x < 26; x++) {
+      let gx = 0, gy = 0;
+      for (let ky = 0; ky < 3; ky++) {
+        for (let kx = 0; kx < 3; kx++) {
+          const val = grayArr[(y+ky) * 28 + (x+kx)];
+          gx += val * sobelGx[ky][kx];
+          gy += val * sobelGy[ky][kx];
+        }
+      }
+      const mag = Math.sqrt(gx*gx + gy*gy);
+      edgeData[y*26 + x] = mag;
+      if (mag > maxEdge) maxEdge = mag;
+    }
+  }
+
+  const edgeCanvas = document.getElementById('edgeResult');
+  const edgeCtx = edgeCanvas.getContext('2d');
+  const edgeImgData = edgeCtx.createImageData(26, 26);
+  for (let i = 0; i < edgeData.length; i++) {
+    const v = edgeData[i] / (maxEdge || 1);
+    const c = Math.floor(v * 255);
+    edgeImgData.data[i*4] = c;
+    edgeImgData.data[i*4+1] = c;
+    edgeImgData.data[i*4+2] = c;
+    edgeImgData.data[i*4+3] = 255;
+  }
+  const edgeOff = document.createElement('canvas');
+  edgeOff.width = 26; edgeOff.height = 26;
+  const ectx = edgeOff.getContext('2d');
+  ectx.putImageData(edgeImgData, 0, 0);
+  edgeCtx.imageSmoothingEnabled = false;
+  edgeCtx.clearRect(0, 0, 200, 200);
+  edgeCtx.drawImage(edgeOff, 0, 0, 26, 26, 0, 0, 200, 200);
+}
+
+function openEdgeModal() {
+  if (!uploadedImage) return;
+  renderEdgeDetection();
+  document.getElementById('modalEdge').style.display = 'flex';
+}
+
+// ============================================================
+//  GAN ANIMATION (simulated denoising)
+// ============================================================
+let ganPlaying = false;
+let ganLoop = true;
+let ganSpeed = 5;
+let ganFrame = 0;
+let ganTimer = null;
+const GAN_TOTAL_FRAMES = 40;
+let ganTargetDigit = -1;
+let ganNoiseSeed = null;
+
+function generateGANFrames(digit) {
+  // Generate a sequence of frames from noise → digit
+  // This simulates the GAN denoising process
+  const frames = [];
+  const size = 28;
+  const totalFrames = GAN_TOTAL_FRAMES;
+
+  // Create seed noise
+  const noise = [];
+  for (let i = 0; i < size * size; i++) {
+    noise.push(Math.random());
+  }
+
+  // Create target digit "ideal" (simple stroke-based)
+  const target = new Float32Array(size * size);
+  const cx = 13.5, cy = 13.5, r = 9;
+
+  function setPixel(x, y, v) {
+    const ix = Math.round(x), iy = Math.round(y);
+    if (ix >= 0 && ix < size && iy >= 0 && iy < size) {
+      target[iy * size + ix] = Math.max(target[iy * size + ix], v);
+    }
+  }
+
+  // Draw digit strokes on target
+  switch(digit) {
+    case 0:
+      for (let a = 0; a < 360; a += 4) {
+        const rad = a * Math.PI / 180;
+        setPixel(cx + 7 * Math.cos(rad), cy + 9 * Math.sin(rad), 1);
+      }
+      break;
+    case 1:
+      for (let y = cy - 8; y <= cy + 8; y++) setPixel(cx, y, 1);
+      for (let y = cy - 8; y <= cy - 5; y++) setPixel(cx - (y - cy + 8) * 0.5, y, 0.6);
+      break;
+    case 2:
+      for (let a = -20; a <= 200; a += 4) { const rad = a * Math.PI/180; setPixel(cx+6*Math.cos(rad), cy-6+5*Math.sin(rad),1); }
+      for (let y = cy-1; y <= cy+5; y++) setPixel(cx-(y-cy)*1.2+2, y, 1);
+      for (let x = cx-6; x <= cx+6; x++) setPixel(x, cy+7, 1);
+      break;
+    case 3:
+      for (let a = -180; a <= 90; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy-7+6*Math.sin(rad),1); }
+      for (let a = -180; a <= 90; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy+7+6*Math.sin(rad),1); }
+      break;
+    case 4:
+      for (let y = cy-8; y <= cy+8; y++) setPixel(cx+2, y, 1);
+      for (let x = cx-7; x <= cx+7; x++) setPixel(x, cy, 0.8);
+      for (let y = cy-8; y <= cy; y++) setPixel(cx-(y-cy+8)*0.7, y, 0.7);
+      break;
+    case 5:
+      for (let x = cx-6; x <= cx+5; x++) setPixel(x, cy-8, 1);
+      for (let y = cy-8; y <= cy; y++) setPixel(cx-6, y, 0.5);
+      for (let a = -90; a <= 120; a += 4) { 
+        const rad = a*Math.PI/180; 
+        const px = cx-1 + 5*Math.cos(rad);
+        const py = cy+3 + 4*Math.sin(rad);
+        setPixel(px, py, 1);
+      }
+      break;
+    case 6:
+      for (let a = 90; a <= 450; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy-3+6*Math.sin(rad),1); }
+      for (let a = 30; a <= 180; a += 4) { const rad = a*Math.PI/180; setPixel(cx+4*Math.cos(rad), cy+5+4*Math.sin(rad),1); }
+      break;
+    case 7:
+      for (let x = cx-7; x <= cx+5; x++) setPixel(x, cy-8, 1);
+      for (let i = 0; i <= 16; i++) { setPixel(cx+5-i*0.75, cy-8+i, 1); }
+      break;
+    case 8:
+      for (let a = 0; a < 360; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy-5+6*Math.sin(rad),1); }
+      for (let a = 0; a < 360; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy+6+6*Math.sin(rad),1); }
+      break;
+    case 9:
+      for (let a = 0; a < 360; a += 4) { const rad = a*Math.PI/180; setPixel(cx+5*Math.cos(rad), cy-5+6*Math.sin(rad),1); }
+      for (let a = -30; a <= 150; a += 4) { const rad = a*Math.PI/180; setPixel(cx+4*Math.cos(rad), cy+5+5*Math.sin(rad),1); }
+      break;
+  }
+
+  // Blur target slightly for softness
+  const blurredTarget = new Float32Array(size * size);
+  for (let y = 1; y < size-1; y++) {
+    for (let x = 1; x < size-1; x++) {
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          sum += target[(y+dy)*size+(x+dx)];
+      blurredTarget[y*size+x] = sum / 9;
+    }
+  }
+
+  // Generate frames
+  for (let f = 0; f < totalFrames; f++) {
+    const t = f / (totalFrames - 1); // 0→1
+    // Use a non-linear curve: slow start, fast middle, slow end
+    const alpha = t < 0.3 ? 0 :
+                 t < 0.7 ? (t - 0.3) / 0.4 :
+                 1;
+    const frame = new Float32Array(size * size);
+    for (let i = 0; i < size * size; i++) {
+      // Blend noise → target with some noise reduction
+      const noiseAmount = Math.max(0, 1 - t * 1.5);
+      frame[i] = blurredTarget[i] * alpha + noise[i] * noiseAmount;
+      // Clamp
+      frame[i] = Math.max(0, Math.min(1, frame[i]));
+    }
+    frames.push(frame);
+  }
+
+  return frames;
+}
+
+let ganFrames = [];
+let ganCurrentDigit = -1;
+
+function initGAN() {
+  // Random digit 0-9
+  ganCurrentDigit = Math.floor(Math.random() * 10);
+  ganFrames = generateGANFrames(ganCurrentDigit);
+  ganFrame = 0;
+  renderGANFrame();
+  document.getElementById('ganFrameLabel').textContent = '帧: 0/' + GAN_TOTAL_FRAMES;
+}
+
+function renderGANFrame() {
+  const canvas = document.getElementById('ganCanvas');
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.createImageData(28, 28);
+  const frame = ganFrames[ganFrame];
+  for (let i = 0; i < frame.length; i++) {
+    const v = Math.floor(frame[i] * 255);
+    imgData.data[i*4] = v;
+    imgData.data[i*4+1] = v;
+    imgData.data[i*4+2] = v;
+    imgData.data[i*4+3] = 255;
+  }
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 28; offCanvas.height = 28;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.putImageData(imgData, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 280, 280);
+  ctx.drawImage(offCanvas, 0, 0, 28, 28, 0, 0, 280, 280);
+
+  // Draw frame label
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, 80, 20);
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('数字 ' + ganCurrentDigit, 4, 13);
+}
+
+function toggleGAN() {
+  if (ganFrames.length === 0 || ganCurrentDigit !== ganTargetDigit) {
+    initGAN();
+    ganTargetDigit = ganCurrentDigit;
+  }
+  ganPlaying = !ganPlaying;
+  document.getElementById('ganPlayBtn').textContent = ganPlaying ? '⏸ 暂停' : '▶ 播放';
+  if (ganPlaying) {
+    runGANLoop();
+  } else {
+    clearTimeout(ganTimer);
+  }
+}
+
+function runGANLoop() {
+  if (!ganPlaying) return;
+  renderGANFrame();
+  document.getElementById('ganFrameLabel').textContent = '帧: ' + ganFrame + '/' + GAN_TOTAL_FRAMES;
+
+  if (ganFrame < GAN_TOTAL_FRAMES - 1) {
+    ganFrame++;
+  } else {
+    if (ganLoop) {
+      ganFrame = 0;
+    } else {
+      ganPlaying = false;
+      document.getElementById('ganPlayBtn').textContent = '▶ 播放';
+      return;
+    }
+  }
+
+  const delay = Math.max(30, 250 - ganSpeed * 25);
+  ganTimer = setTimeout(runGANLoop, delay);
+}
+
+function resetGAN() {
+  ganPlaying = false;
+  clearTimeout(ganTimer);
+  document.getElementById('ganPlayBtn').textContent = '▶ 播放';
+  initGAN();
+  ganTargetDigit = ganCurrentDigit;
+}
+
+function toggleGANLoop() {
+  ganLoop = !ganLoop;
+  document.getElementById('ganLoopBtn').textContent = '🔁 循环: ' + (ganLoop ? '开' : '关');
+}
+
+function openGANModal() {
+  if (ganFrames.length === 0) {
+    initGAN();
+    ganTargetDigit = ganCurrentDigit;
+  }
+  document.getElementById('modalGAN').style.display = 'flex';
+}
+
+// ============================================================
+//  INITIAL RENDER
+// ============================================================
+updateAllHeatmaps();
+
+console.log('✅ 涂鸦识别+卷积可视化 页面就绪');
+console.log('  🖌️  画布 280×280 → 28×28');
+console.log('  🔥  4个卷积核热力图实时更新');
+console.log('  📷  支持上传图片做边缘检测');
+console.log('  🎬  GAN去噪动画模拟');
+console.log('  📱  响应式布局，触控友好');
+</script>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听，他听懂了，你才算真懂。</p>
+<p>Q：<em>卷积核到底在干嘛？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：像手电筒的小窗口扫过整张图，每扫一处算一个「这里像不像这个特征」的分数：找边缘、找角点。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson4-neural-network.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">神经网络沙盒</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">神经元像积木，一层层搭出智能</div></a><a href="lesson6-llm-viz.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">LLM 可视化</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">看懂字以后，怎么写出字？一个字一个字猜</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">对抗样本：给熊猫图片加一点人眼看不见的噪声，AI 会把它认成长臂猿：AI 的「看」和人的「看」差在哪？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
