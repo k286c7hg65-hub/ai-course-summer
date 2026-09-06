@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI投资时光机 — AI夏令营第9课</title>
+<style>
+/* ===== Theme: Financial Terminal ===== */
+:root {
+  --bg: #0a0d0f; --panel: #11161a; --panel2: #171c22;
+  --border: #1e2a33; --text: #c8ccd0; --text2: #7a8290; --text-bright: #e8ecef;
+  --green: #00e676; --green-dim: #00c853;
+  --red: #ff3d3d; --red-dim: #ff5252;
+  --amber: #ffab00; --cyan: #00e5ff; --purple: #b388ff;
+  --gld: #ffd740;
+  --font: 'Courier New', 'Source Code Pro', 'SF Mono', 'PingFang SC', 'Microsoft YaHei', monospace;
+  --font-ui: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui); background: var(--bg); color: var(--text);
+  min-height: 100vh; overflow-x: hidden; line-height: 1.6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Scanline overlay ===== */
+body::after {
+  content: ''; position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none; z-index: 999; opacity: 0.4;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 28px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(0,230,118,0.05), rgba(0,229,255,0.03), transparent);
+  position: relative;
+}
+.header .blink-dot {
+  display: inline-block; width: 8px; height: 16px; background: var(--green);
+  animation: blink 1s step-end infinite; vertical-align: middle; margin-right: 8px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.header h1 { font-size: 1.7rem; color: var(--text-bright); font-family: var(--font); letter-spacing: 1px; }
+.header h1 .g { color: var(--green); }
+.header h1 .c { color: var(--cyan); }
+.header .sub { margin-top: 8px; color: var(--text2); font-size: 0.88rem; font-family: var(--font); }
+.header .sub em { color: var(--amber); font-style: normal; }
+
+/* ===== Section ===== */
+.section-title {
+  text-align: center; padding: 30px 20px 10px;
+  font-size: 1.1rem; font-weight: 700; color: var(--text-bright);
+  font-family: var(--font); letter-spacing: 1px;
+}
+.section-title .tag {
+  display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 3px;
+  background: var(--panel2); border: 1px solid var(--border);
+  color: var(--green); margin-right: 8px; vertical-align: middle;
+  font-family: var(--font);
+}
+
+/* ===== Mode 1: Time Machine ===== */
+.timemachine-wrap {
+  max-width: 720px; margin: 16px auto 0; padding: 0 16px;
+}
+.tm-scenario {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 14px;
+  font-family: var(--font); font-size: 0.9rem; color: var(--text);
+  position: relative; overflow: hidden;
+}
+.tm-scenario::before {
+  content: '📅 2022.11.30 · ChatGPT 发布日'; position: absolute;
+  top: 8px; right: 14px; font-size: 0.7rem; color: var(--text2);
+  font-family: var(--font-ui);
+}
+.tm-scenario .cash-tag {
+  display: inline-block; background: rgba(255,215,64,0.12); color: var(--gld);
+  padding: 1px 8px; border-radius: 3px; font-weight: 700;
+}
+
+.tm-targets {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  margin-bottom: 16px;
+}
+.tm-target {
+  background: var(--panel2); border: 2px solid var(--border); border-radius: 8px;
+  padding: 14px 6px; text-align: center; cursor: pointer;
+  transition: all 0.25s; user-select: none; position: relative;
+}
+.tm-target:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,230,118,0.12); }
+.tm-target:active { transform: scale(0.96); }
+.tm-target.selected { border-color: var(--green); background: rgba(0,230,118,0.08); box-shadow: 0 0 20px rgba(0,230,118,0.2); }
+.tm-target .ticker { font-family: var(--font); font-size: 1rem; font-weight: 700; color: var(--text-bright); }
+.tm-target .name { font-size: 0.68rem; color: var(--text2); margin-top: 2px; white-space: nowrap; }
+.tm-target .check {
+  position: absolute; top: 6px; right: 8px; font-size: 0.8rem; color: var(--green);
+  opacity: 0; transition: opacity 0.2s;
+}
+.tm-target.selected .check { opacity: 1; }
+
+.tm-action-bar { text-align: center; margin-bottom: 20px; }
+.btn {
+  font-family: var(--font); font-size: 0.88rem; padding: 10px 28px; border-radius: 6px;
+  border: 1px solid var(--border); cursor: pointer; transition: all 0.25s;
+  background: var(--panel2); color: var(--text); letter-spacing: 1px;
+}
+.btn:hover { filter: brightness(1.3); transform: translateY(-1px); }
+.btn:active { transform: scale(0.96); }
+.btn-go { background: rgba(0,230,118,0.12); border-color: var(--green); color: var(--green); }
+.btn-go:hover { background: rgba(0,230,118,0.2); box-shadow: 0 0 20px rgba(0,230,118,0.2); }
+.btn-go:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.tm-result {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; display: none; font-family: var(--font);
+}
+.tm-result.active { display: block; animation: fadeSlideIn 0.4s ease; }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.tm-result .result-header { font-size: 0.85rem; color: var(--text2); margin-bottom: 12px; }
+.tm-result .result-row {
+  display: flex; justify-content: space-between; align-items: center; padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.tm-result .result-name { font-size: 0.85rem; color: var(--text); }
+.tm-result .result-pnl { font-size: 1rem; font-weight: 700; font-family: var(--font); }
+.tm-result .result-pnl.up { color: var(--green); }
+.tm-result .result-pnl.down { color: var(--red); }
+.tm-result .result-summary {
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+  text-align: center;
+}
+.tm-result .result-total { font-size: 1.4rem; font-weight: 700; font-family: var(--font); }
+.tm-result .result-note { font-size: 0.78rem; color: var(--text2); margin-top: 4px; }
+.tm-result .result-stock-bar {
+  display: flex; align-items: center; gap: 10px; margin: 4px 0;
+}
+.tm-result .bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.tm-result .bar-fill { height: 100%; border-radius: 3px; transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.tm-result .bar-fill.green { background: var(--green); }
+.tm-result .bar-fill.red { background: var(--red); }
+
+/* ===== Mode 2: News Shock ===== */
+.news-wrap {
+  max-width: 720px; margin: 16px auto 0; padding: 0 16px;
+}
+.news-headline {
+  background: var(--panel); border: 1px solid var(--red-dim); border-left: 4px solid var(--red);
+  border-radius: 8px; padding: 16px 18px; margin-bottom: 16px;
+}
+.news-headline .news-flash {
+  font-family: var(--font); font-size: 0.7rem; color: var(--red); letter-spacing: 2px;
+  animation: blink 1.2s step-end infinite; margin-bottom: 4px;
+}
+.news-headline .news-title {
+  font-size: 1rem; font-weight: 700; color: var(--text-bright);
+  line-height: 1.5;
+}
+.news-headline .news-date { font-size: 0.72rem; color: var(--text2); margin-top: 6px; font-family: var(--font); }
+
+.news-strategies { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.news-strat {
+  background: var(--panel2); border: 2px solid var(--border); border-radius: 10px;
+  padding: 16px 12px; text-align: center; cursor: pointer;
+  transition: all 0.25s; user-select: none;
+}
+.news-strat:hover { border-color: var(--amber); transform: translateY(-2px); }
+.news-strat:active { transform: scale(0.96); }
+.news-strat.revealed { border-color: var(--amber); }
+.news-strat .strat-letter { font-family: var(--font); font-size: 1.3rem; font-weight: 700; color: var(--amber); }
+.news-strat .strat-action { font-size: 0.82rem; color: var(--text-bright); margin-top: 4px; }
+.news-strat .strat-desc { font-size: 0.7rem; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+
+.news-outcome {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px; display: none;
+}
+.news-outcome.active { display: block; animation: fadeSlideIn 0.4s ease; }
+.news-outcome .outcome-title { font-family: var(--font); font-size: 0.85rem; color: var(--amber); margin-bottom: 10px; }
+.news-outcome .outcome-pnl { font-family: var(--font); font-size: 1.1rem; font-weight: 700; }
+.news-outcome .outcome-pnl.up { color: var(--green); }
+.news-outcome .outcome-pnl.down { color: var(--red); }
+.news-outcome .outcome-reason { font-size: 0.8rem; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+/* ===== Mode 3: Earnings Challenge ===== */
+.earnings-wrap {
+  max-width: 720px; margin: 16px auto 0; padding: 0 16px;
+}
+.earnings-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.earnings-card .ec-ticker {
+  font-family: var(--font); font-size: 0.7rem; color: var(--text2); letter-spacing: 2px; margin-bottom: 4px;
+}
+.earnings-card .ec-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.earnings-card .ec-stat {
+  text-align: center; background: var(--panel2); border-radius: 8px; padding: 12px 6px;
+  border: 1px solid var(--border);
+}
+.earnings-card .ec-stat .val { font-family: var(--font); font-size: 1.1rem; font-weight: 700; color: var(--text-bright); }
+.earnings-card .ec-stat .lbl { font-size: 0.68rem; color: var(--text2); margin-top: 2px; }
+.earnings-card .ec-stat.surprise .val { color: var(--green); }
+.earnings-card .ec-stat.price .val { color: var(--red); }
+
+.earnings-quiz { margin-bottom: 16px; }
+.earnings-quiz .quiz-q {
+  font-size: 0.95rem; font-weight: 700; color: var(--text-bright);
+  margin-bottom: 12px; text-align: center;
+}
+.earnings-options { display: flex; flex-direction: column; gap: 8px; }
+.earnings-opt {
+  background: var(--panel2); border: 2px solid var(--border); border-radius: 8px;
+  padding: 14px 16px; cursor: pointer; transition: all 0.25s;
+  text-align: left; font-size: 0.85rem; color: var(--text);
+}
+.earnings-opt:hover { border-color: var(--cyan); background: rgba(0,229,255,0.04); }
+.earnings-opt:active { transform: scale(0.98); }
+.earnings-opt.correct { border-color: var(--green); background: rgba(0,230,118,0.06); }
+.earnings-opt.wrong { border-color: var(--red); background: rgba(255,61,61,0.06); }
+.earnings-opt .opt-letter {
+  display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center;
+  border-radius: 50%; background: var(--panel); border: 1px solid var(--border);
+  font-size: 0.72rem; font-weight: 700; color: var(--text2); margin-right: 10px;
+  font-family: var(--font);
+}
+.earnings-opt.correct .opt-letter { background: rgba(0,230,118,0.15); color: var(--green); border-color: var(--green); }
+.earnings-opt.wrong .opt-letter { background: rgba(255,61,61,0.15); color: var(--red); border-color: var(--red); }
+
+.earnings-reveal {
+  background: var(--panel); border: 1px solid var(--cyan); border-left: 4px solid var(--cyan);
+  border-radius: 8px; padding: 16px 18px; display: none;
+}
+.earnings-reveal.active { display: block; animation: fadeSlideIn 0.4s ease; }
+.earnings-reveal .reveal-title { font-family: var(--font); font-size: 0.82rem; color: var(--cyan); letter-spacing: 1px; margin-bottom: 6px; }
+.earnings-reveal .reveal-text { font-size: 0.85rem; color: var(--text); line-height: 1.7; }
+.earnings-reveal .reveal-takeaway {
+  margin-top: 10px; padding: 10px 14px; background: rgba(0,229,255,0.06);
+  border-radius: 6px; font-size: 0.82rem; color: var(--cyan);
+}
+
+/* ===== Valuations Footer ===== */
+.valuations-wrap {
+  max-width: 960px; margin: 20px auto 30px; padding: 0 16px;
+}
+.val-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.val-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 14px; text-align: center; transition: all 0.25s;
+  position: relative; overflow: hidden;
+}
+.val-card:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+.val-card .val-logo { font-size: 2rem; margin-bottom: 6px; display: block; }
+.val-card .val-name { font-size: 0.95rem; font-weight: 700; color: var(--text-bright); }
+.val-card .val-name.mono { font-family: var(--font); letter-spacing: 0.5px; }
+.val-card .val-valuation {
+  font-family: var(--font); font-size: 1rem; font-weight: 700; margin-top: 8px;
+}
+.val-card .val-valuation.v-up { color: var(--green); }
+.val-card .val-valuation.v-flat { color: var(--amber); }
+.val-card .val-meta { font-size: 0.7rem; color: var(--text2); margin-top: 2px; }
+.val-card .val-tag {
+  display: inline-block; font-size: 0.62rem; padding: 2px 7px; border-radius: 3px;
+  margin-top: 8px; font-family: var(--font);
+}
+.val-card .tag-hot { background: rgba(255,61,61,0.12); color: var(--red); border: 1px solid rgba(255,61,61,0.2); }
+.val-card .tag-stable { background: rgba(0,230,118,0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.15); }
+.val-card .tag-watch { background: rgba(255,171,0,0.1); color: var(--amber); border: 1px solid rgba(255,171,0,0.15); }
+
+.val-card .val-glint {
+  position: absolute; top: -30%; right: -20%; width: 60px; height: 60px;
+  background: radial-gradient(circle, rgba(255,255,255,0.04), transparent);
+  border-radius: 50%; pointer-events: none;
+}
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 24px 20px 40px;
+  color: var(--text2); font-size: 0.72rem; font-family: var(--font);
+  border-top: 1px solid var(--border);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .header h1 { font-size: 1.35rem; }
+  .tm-targets { grid-template-columns: repeat(3, 1fr); }
+  .tm-targets .tm-target:last-child { grid-column: span 1; }
+  .news-strategies { grid-template-columns: 1fr; }
+  .earnings-card .ec-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .val-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .tm-targets { grid-template-columns: repeat(2, 1fr); }
+  .tm-targets .tm-target:last-child { grid-column: span 2; }
+  .val-grid { grid-template-columns: 1fr; }
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson8-supply-chain.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson10-ai-minister.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<!-- ===== Header ===== -->
+<div class="header">
+  <h1><span class="blink-dot"></span><span class="g">AI</span> 投资<span class="c">时光机</span></h1>
+  <p class="sub">如果你能回到过去，你会押注 <em>AI</em> 吗？<br>三个交互实验，一个答案。</p>
+</div>
+
+<div style="max-width:860px;margin:14px auto 0;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(245,158,11,0.06);color:var(--amber);font-size:0.82rem;line-height:1.7;text-align:center;">⚠️ 本页为教学模拟：收益/估值均为简化推算，非真实投资建议，不构成任何买入/卖出依据。数据快照 2026-06，数字会随时间过期。</div>
+
+<!-- ===== Mode 1: Time Machine ===== -->
+<div class="section-title"><span class="tag">模式一</span> 📅 历史回放：回到 2022 年 11 月</div>
+
+<div class="timemachine-wrap">
+  <div class="tm-scenario">
+    2022 年 11 月 30 日，OpenAI 发布 ChatGPT。<br>
+    你手上恰好有 <span class="cash-tag">¥100,000</span> 闲钱。<br>
+    选择你的投资目标，然后快进到 2026 年。</div>
+
+  <div class="tm-targets" id="tmTargets">
+    <div class="tm-target" data-ticker="NVDA">
+      <div class="check">✓</div>
+      <div class="ticker">NVDA</div>
+      <div class="name">英伟达</div>
+    </div>
+    <div class="tm-target" data-ticker="MSFT">
+      <div class="check">✓</div>
+      <div class="ticker">MSFT</div>
+      <div class="name">微软</div>
+    </div>
+    <div class="tm-target" data-ticker="TSM">
+      <div class="check">✓</div>
+      <div class="ticker">TSM</div>
+      <div class="name">台积电</div>
+    </div>
+    <div class="tm-target" data-ticker="BIDU">
+      <div class="check">✓</div>
+      <div class="ticker">BIDU</div>
+      <div class="name">百度</div>
+    </div>
+    <div class="tm-target" data-ticker="CASH">
+      <div class="check">✓</div>
+      <div class="ticker">💰</div>
+      <div class="name">持有现金</div>
+    </div>
+  </div>
+
+  <div class="tm-action-bar">
+    <button class="btn btn-go" id="btnGo" disabled onclick="runTimeMachine()">
+      ▶ 快进
+    </button>
+  </div>
+
+  <div class="tm-result" id="tmResult">
+    <div class="result-header" id="tmResultHeader">📍 2026 年中 · 大约 4 年</div>
+    <div id="tmResultRows"></div>
+    <div class="result-summary" id="tmSummary"></div>
+  </div>
+</div>
+
+<!-- ===== Mode 2: News Shock ===== -->
+<div class="section-title"><span class="tag">模式二</span> ⚡ 新闻冲击波</div>
+
+<div class="news-wrap">
+  <div class="news-headline">
+    <div class="news-flash">🔴 BREAKING · 突发新闻</div>
+    <div class="news-title">美国宣布对华 AI 芯片禁令全面升级<br>H100/B200 出口被禁，波及范围扩大</div>
+    <div class="news-date">2023-10-17 09:32 EST · Reuters</div>
+  </div>
+
+  <p style="text-align:center; color:var(--text2); font-size:0.82rem; margin-bottom:12px;">
+    你持有 NVDA 和 TSM 仓位。选择你的应对策略。</p>
+
+  <div class="news-strategies" id="newsStrats">
+    <div class="news-strat" data-strat="A" onclick="revealNewsStrat('A')">
+      <div class="strat-letter">A</div>
+      <div class="strat-action">🏃 全部清仓</div>
+      <div class="strat-desc">芯片禁令 = 基本面恶化<br>立即卖出所有持仓</div>
+    </div>
+    <div class="news-strat" data-strat="B" onclick="revealNewsStrat('B')">
+      <div class="strat-letter">B</div>
+      <div class="strat-action">🧘 按兵不动</div>
+      <div class="strat-desc">短期恐慌 = 长期噪音<br>继续持有原仓位</div>
+    </div>
+    <div class="news-strat" data-strat="C" onclick="revealNewsStrat('C')">
+      <div class="strat-letter">C</div>
+      <div class="strat-action">📉 逢低加仓</div>
+      <div class="strat-desc">恐慌 = 机会<br>股价跌 15% 后加倍买入</div>
+    </div>
+  </div>
+
+  <div class="news-outcome" id="newsOutcomeA">
+    <div class="outcome-title">策略 A · 全部清仓 · 6 个月后</div>
+    <div class="outcome-pnl down">- 踏空反弹，净值 ¥82,000（-18%）</div>
+    <div class="outcome-reason">
+      禁令宣布当日 NVDA 跌 7%，TSM 跌 6%。但三个月后市场意识到：禁令只影响增量：存量芯片变得更稀缺。<br>
+      NVDA 反弹 40%+，TSM 反弹 30%+。卖出在底部 = 最差的剧本。
+    </div>
+  </div>
+  <div class="news-outcome" id="newsOutcomeB">
+    <div class="outcome-title">策略 B · 按兵不动 · 6 个月后</div>
+    <div class="outcome-pnl up">+ 净值 ¥124,000（+24%）</div>
+    <div class="outcome-reason">
+      持有不动熬过了最恐慌的 4 周。NVDA 从低点反弹 45%，TSM 反弹 32%。<br>
+      「什么都不做」在这个案例里，跑赢了恐慌卖出。
+    </div>
+  </div>
+  <div class="news-outcome" id="newsOutcomeC">
+    <div class="outcome-title">策略 C · 逢低加仓 · 6 个月后</div>
+    <div class="outcome-pnl up">+ 净值 ¥161,000（+61%）🔥</div>
+    <div class="outcome-reason">
+      禁令消息砸出恐慌底。你在 -15% 位置加倍买入 NVDA，后续反弹 45%。<br>
+      「别人恐惧我贪婪」，但前提是你真的理解 AI 基础设施的稀缺性。
+    </div>
+  </div>
+</div>
+
+<!-- ===== Mode 3: Earnings Challenge ===== -->
+<div class="section-title"><span class="tag">模式三</span> 📊 财报挑战：预期管理的艺术</div>
+
+<div class="earnings-wrap">
+  <div class="earnings-card">
+    <div class="ec-ticker">NYSE: NVDA · FY2025 Q2 · 2024-08-28 盘后</div>
+    <div class="ec-stats">
+      <div class="ec-stat surprise">
+        <div class="val">$30.0B</div>
+        <div class="lbl">实际收入</div>
+      </div>
+      <div class="ec-stat">
+        <div class="val">$28.7B</div>
+        <div class="lbl">分析师预期</div>
+      </div>
+      <div class="ec-stat price">
+        <div class="val">▼ 6.4%</div>
+        <div class="lbl">盘后股价</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="earnings-quiz" id="earningsQuiz">
+    <div class="quiz-q">🤔 收入超预期 $1.3B，股价却跌了，为什么？</div>
+    <div class="earnings-options">
+      <div class="earnings-opt" data-answer="wrong" onclick="pickEarnings(this, 'wrong')">
+        <span class="opt-letter">A</span> 市场对 AI 泡沫的恐慌，跟 NVDA 本身无关
+      </div>
+      <div class="earnings-opt" data-answer="correct" onclick="pickEarnings(this, 'correct')">
+        <span class="opt-letter">B</span> 「超预期」幅度不够大：市场早已把 $30B 甚至更高「price in」了
+      </div>
+      <div class="earnings-opt" data-answer="wrong" onclick="pickEarnings(this, 'wrong')">
+        <span class="opt-letter">C</span> NVDA 的毛利率下滑，说明芯片卖不动了
+      </div>
+    </div>
+  </div>
+
+  <div class="earnings-reveal" id="earningsReveal">
+    <div class="reveal-title">📖 答案：B ： 预期管理</div>
+    <div class="reveal-text">
+      这不是 NVDA 第一次超预期却跌了。<br><br>
+      关键在于「<strong>whisper number</strong>」：分析师公开写 $28.7B，<br>
+      但买方交易员的私下预期早已是 $30-31B。<br><br>
+      股价反映的不是「超没超预期」，<br>
+      而是「超了多少」：当 $1.3B 的超预期变成市场公认的「及格线」，<br>
+      你超的其实不是预期，是预期之预期。<br><br>
+      这就是华尔街的 <strong>预期管理</strong> 游戏：<br>
+      公司学会了降低分析师预期，保证每次都能「超预期」。
+    </div>
+    <div class="reveal-takeaway">
+      💡 核心概念：<strong>Price In（价格已计入）</strong>：市场交易的是「未来」，不是「过去」。<br>
+      你看到的利好，别人可能三个月前就买完了。
+    </div>
+  </div>
+</div>
+
+<!-- ===== Valuations ===== -->
+<div class="section-title"><span class="tag">估值</span> 🏢 四大 AI 组织，值多少钱？</div>
+
+<div class="valuations-wrap">
+  <div class="val-grid">
+    <div class="val-card" style="border-top: 3px solid var(--green);">
+      <div class="val-glint"></div>
+      <div class="val-logo">🤖</div>
+      <div class="val-name mono">OpenAI</div>
+      <div class="val-valuation v-up">$852B</div>
+      <div class="val-meta">2026.3 · $122B 史上最大轮</div>
+      <div class="val-meta" style="margin-top:1px;">收入 $20B+ · 已秘密递交 IPO 申请</div>
+      <span class="val-tag tag-hot">🔥 $1T 估值在望</span>
+    </div>
+
+    <div class="val-card" style="border-top: 3px solid var(--purple);">
+      <div class="val-glint"></div>
+      <div class="val-logo">🧬</div>
+      <div class="val-name mono">Anthropic</div>
+      <div class="val-valuation v-up">$965B</div>
+      <div class="val-meta">2026.5 · Series H $65B</div>
+      <div class="val-meta" style="margin-top:1px;">超越 OpenAI 成最贵 AI 公司 · 近 $1T</div>
+      <span class="val-tag tag-hot">🔥 全球最高估值 AI 初创</span>
+    </div>
+
+    <div class="val-card" style="border-top: 3px solid var(--cyan);">
+      <div class="val-glint"></div>
+      <div class="val-logo">🧠</div>
+      <div class="val-name mono">DeepMind</div>
+      <div class="val-valuation v-flat">Google 旗下</div>
+      <div class="val-meta">AlphaFold 获 2024 诺奖</div>
+      <div class="val-meta" style="margin-top:1px;">与 Gemini 团队合并</div>
+      <span class="val-tag tag-watch">🔬 基础研究之王</span>
+    </div>
+
+    <div class="val-card" style="border-top: 3px solid var(--amber);">
+      <div class="val-glint"></div>
+      <div class="val-logo">🚀</div>
+      <div class="val-name mono">xAI</div>
+      <div class="val-valuation v-up">$250B</div>
+      <div class="val-meta">2026.2 · 与 SpaceX 合并</div>
+      <div class="val-meta" style="margin-top:1px;">Grok · 55 万 GPU · 合并估值 $1.25T</div>
+      <span class="val-tag tag-hot">⚡ 马斯克 AI 帝国</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  AI 夏令营 · 第 9 课 · AI 投资时光机<br>
+  <span style="color:var(--green);">$</span> 历史数据基于真实市场回报 · 模拟结果不构成投资建议
+</div>
+
+<script>
+// ===== Mode 1: Time Machine =====
+const RETURNS = {
+  NVDA: { change: '+950%', pct: 950, color: 'up', bar: 'green' },
+  MSFT: { change: '+75%', pct: 75, color: 'up', bar: 'green' },
+  TSM:  { change: '+185%', pct: 185, color: 'up', bar: 'green' },
+  BIDU: { change: '−15%', pct: -15, color: 'down', bar: 'red' },
+  CASH: { change: '0%', pct: 0, color: 'up', bar: 'green' }
+};
+
+let selectedTicker = null;
+
+document.querySelectorAll('.tm-target').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.tm-target').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTicker = el.dataset.ticker;
+    document.getElementById('btnGo').disabled = false;
+  });
+});
+
+function runTimeMachine() {
+  if (!selectedTicker) return;
+  const btn = document.getElementById('btnGo');
+  btn.disabled = true;
+  btn.textContent = '⏳ 快进中...';
+  btn.style.borderColor = 'var(--amber)';
+  btn.style.color = 'var(--amber)';
+
+  // Build multi-row result showing all 5 targets
+  const allTickers = ['NVDA','MSFT','TSM','BIDU','CASH'];
+  const names = { NVDA:'英伟达', MSFT:'微软', TSM:'台积电', BIDU:'百度', CASH:'现金' };
+
+  setTimeout(() => {
+    let rowsHTML = '';
+    allTickers.forEach(t => {
+      const r = RETURNS[t];
+      const isChosen = t === selectedTicker;
+      const prefix = isChosen ? '👉 ' : '   ';
+      rowsHTML += `<div class="result-row" style="${isChosen ? 'background:rgba(0,230,118,0.05);border-radius:6px;padding:8px 10px;' : ''}">
+        <span class="result-name">${prefix}${names[t]} (${t})</span>
+        <div class="result-stock-bar" style="width:140px;">
+          <div class="bar-track"><div class="bar-fill ${r.bar}" style="width:0%"></div></div>
+          <span class="result-pnl ${r.color}" style="min-width:60px;text-align:right;white-space:nowrap;">${r.change}</span>
+        </div>
+      </div>`;
+    });
+
+    const picked = RETURNS[selectedTicker];
+    const endValue = 100000 * (1 + picked.pct / 100);
+    const endStr = endValue >= 100000
+      ? '¥' + endValue.toLocaleString('zh-CN')
+      : '¥' + endValue.toLocaleString('zh-CN');
+
+    let summaryHTML = '';
+    if (picked.pct > 0) {
+      const gain = endValue - 100000;
+      summaryHTML = `
+        <div class="result-total" style="color:var(--green);">${endStr}</div>
+        <div class="result-note">你投了 <strong>${names[selectedTicker]}</strong>，盈利 ¥${gain.toLocaleString('zh-CN')}（${picked.change}）</div>
+        <div class="result-note" style="margin-top:4px;">🎯 如果选 NVDA → 你的 ¥100,000 会变成 <strong style="color:var(--green);">¥1,050,000</strong></div>`;
+    } else if (picked.pct === 0) {
+      summaryHTML = `
+        <div class="result-total" style="color:var(--amber);">${endStr}</div>
+        <div class="result-note">你选择了现金，避开了风险，但也错过了史上最大的 AI 涨幅</div>
+        <div class="result-note" style="margin-top:4px;">🎯 NVDA 同期涨幅：<strong style="color:var(--green);">+950%</strong></div>`;
+    } else {
+      summaryHTML = `
+        <div class="result-total" style="color:var(--red);">${endStr}</div>
+        <div class="result-note">你投了百度，在 AI 浪潮中却亏了 ¥${(100000-endValue).toLocaleString('zh-CN')}</div>
+        <div class="result-note" style="margin-top:4px;">💡 启示：选对赛道不等于选对个股。百度有 AI 但市场不买账。</div>`;
+    }
+
+    document.getElementById('tmResultRows').innerHTML = rowsHTML;
+    document.getElementById('tmSummary').innerHTML = summaryHTML;
+    document.getElementById('tmResult').classList.add('active');
+
+    // Animate bars
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.tm-result .bar-fill').forEach((bar, i) => {
+        const w = ['950','75','185','15','0'][i];
+        setTimeout(() => { bar.style.width = Math.min(Math.abs(parseInt(w)), 100) + '%'; }, 100 + i * 120);
+      });
+    });
+
+    btn.textContent = '🔄 重新选择';
+    btn.disabled = false;
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    btn.onclick = resetTimeMachine;
+  }, 1400);
+}
+
+function resetTimeMachine() {
+  document.getElementById('tmResult').classList.remove('active');
+  document.querySelectorAll('.tm-target').forEach(t => t.classList.remove('selected'));
+  selectedTicker = null;
+  const btn = document.getElementById('btnGo');
+  btn.textContent = '▶ 快进';
+  btn.disabled = true;
+  btn.style.borderColor = 'var(--green)';
+  btn.style.color = 'var(--green)';
+  btn.onclick = runTimeMachine;
+}
+
+// ===== Mode 2: News Shock =====
+function revealNewsStrat(strat) {
+  // Hide all outcomes
+  ['A','B','C'].forEach(s => document.getElementById('newsOutcome'+s).classList.remove('active'));
+  // Show selected
+  document.getElementById('newsOutcome'+strat).classList.add('active');
+  // Mark cards
+  document.querySelectorAll('.news-strat').forEach(el => {
+    el.classList.toggle('revealed', el.dataset.strat === strat);
+  });
+}
+
+// ===== Mode 3: Earnings Challenge =====
+let earningsAnswered = false;
+function pickEarnings(el, answer) {
+  if (earningsAnswered) return;
+  earningsAnswered = true;
+
+  document.querySelectorAll('.earnings-opt').forEach(opt => {
+    if (opt === el) {
+      opt.classList.add(answer === 'correct' ? 'correct' : 'wrong');
+    } else if (opt.dataset.answer === 'correct') {
+      opt.classList.add('correct');
+    }
+    opt.style.pointerEvents = 'none';
+  });
+  document.getElementById('earningsReveal').classList.add('active');
+}
+</script>
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>为什么财报超预期，股价反而跌？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：市场早就把「超预期」price in 了：股价反映的是「超多少」，不是「超没超」。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson8-supply-chain.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">产业链金字塔</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">沙子→芯片→模型→App：五层楼缺一不可</div></a><a href="lesson10-ai-minister.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">AI 部长</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">公司谁来管？如果你是 AI 部长，你会怎么管？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">泡沫论：2000 年思科 PE 555 倍后崩了，今天的 NVIDIA 是历史重演还是真金白银？孙正义的千亿美元赌注对了吗？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
