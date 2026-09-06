@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 知识翻牌 · 夏日课程</title>
+<style>
+
+/* ===== CSS Custom Properties ===== */
+:root {
+  --bg: #0f0f1a;
+  --card-bg: #1a1a2e;
+  --card-hover: #1e1e36;
+  --card-back: #151528;
+  --text: #e0e0e0;
+  --text-dim: #8888a0;
+  --text-bright: #ffffff;
+  --border: #2a2a45;
+  --border-active: #4a4a6a;
+  --color-people: #f0a500;
+  --color-people-bg: rgba(240, 165, 0, 0.12);
+  --color-companies: #4a9eff;
+  --color-companies-bg: rgba(74, 158, 255, 0.12);
+  --color-concepts: #4ade80;
+  --color-concepts-bg: rgba(74, 222, 128, 0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Container ===== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  padding: 32px 0 20px;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.header .subtitle {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0 24px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 10px 22px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-btn:hover {
+  border-color: var(--border-active);
+  color: var(--text);
+}
+
+.tab-btn.active {
+  border-color: var(--color-people);
+  color: var(--text-bright);
+  background: var(--color-people-bg);
+}
+
+.tab-btn[data-tab="companies"].active {
+  border-color: var(--color-companies);
+  background: var(--color-companies-bg);
+}
+
+.tab-btn[data-tab="concepts"].active {
+  border-color: var(--color-concepts);
+  background: var(--color-concepts-bg);
+}
+
+.tab-count {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* ===== Search ===== */
+.search-wrap {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto 20px;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border var(--transition);
+  min-height: 44px;
+}
+
+.search-wrap input:focus {
+  border-color: var(--border-active);
+}
+
+.search-wrap input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+/* ===== Filter Chips ===== */
+.filters {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-chip:hover {
+  border-color: var(--border-active);
+  color: var(--text);
+}
+
+.filter-chip.active {
+  border-color: var(--color-people);
+  color: var(--text-bright);
+  background: var(--color-people-bg);
+}
+
+.tab-companies .filter-chip.active {
+  border-color: var(--color-companies);
+  background: var(--color-companies-bg);
+}
+
+.tab-concepts .filter-chip.active {
+  border-color: var(--color-concepts);
+  background: var(--color-concepts-bg);
+}
+
+/* ===== Stats ===== */
+.stats {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+/* ===== Card Grid ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .card-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .header h1 { font-size: 1.6rem; }
+  .container { padding: 16px 16px 48px; }
+}
+
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr; gap: 12px; }
+  .tabs { gap: 4px; }
+  .tab-btn { padding: 8px 14px; font-size: 0.85rem; }
+  .filters { gap: 4px; }
+  .filter-chip { padding: 5px 10px; font-size: 0.78rem; }
+}
+
+/* ===== Flip Card ===== */
+.flip-card {
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  min-height: 200px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.flip-card-front {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+
+.flip-card-front:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-active);
+}
+
+.flip-card-back {
+  background: var(--card-back);
+  border: 1px solid var(--border);
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Category accent stripe */
+.flip-card-front::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.flip-card.cat-people .flip-card-front::before { background: var(--color-people); }
+.flip-card.cat-companies .flip-card-front::before { background: var(--color-companies); }
+.flip-card.cat-concepts .flip-card-front::before { background: var(--color-concepts); }
+
+/* ===== Card Content - Front ===== */
+.card-category {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  margin-top: 2px;
+}
+
+.cat-people .card-category { color: var(--color-people); }
+.cat-companies .card-category { color: var(--color-companies); }
+.cat-concepts .card-category { color: var(--color-concepts); }
+
+.card-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.card-name-en {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.card-tagline {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.card-summary {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.card-lessons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.lesson-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+}
+
+.cat-people .lesson-badge { color: var(--color-people); }
+.cat-companies .lesson-badge { color: var(--color-companies); }
+.cat-concepts .lesson-badge { color: var(--color-concepts); }
+
+.flip-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+/* ===== Card Content - Back ===== */
+.card-back-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-back .card-name {
+  font-size: 1.05rem;
+  margin-bottom: 0;
+}
+
+.back-close-hint {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.card-back .card-summary {
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+.card-detail-section {
+  margin-bottom: 10px;
+}
+
+.card-detail-section:last-child { margin-bottom: 0; }
+
+.card-detail-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 3px;
+}
+
+.card-detail-value {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* Obsession & Cost highlights */
+.obsession-block {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-people);
+  background: var(--color-people-bg);
+}
+
+.obsession-block .obsession-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-people);
+  margin-bottom: 2px;
+}
+
+.obsession-block .obsession-text {
+  font-size: 0.85rem;
+  color: var(--text-bright);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cost-block {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.cost-block .cost-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ff6b6b;
+  margin-bottom: 2px;
+}
+
+.cost-block .cost-text {
+  font-size: 0.85rem;
+  color: #ffaaaa;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ===== Concept card specific ===== */
+.concept-explanation {
+  font-size: 0.85rem;
+  color: var(--text);
+  padding: 8px 10px;
+  background: rgba(74, 222, 128, 0.06);
+  border-radius: var(--radius-sm);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.concept-explanation .explanation-icon {
+  color: var(--color-concepts);
+  margin-right: 4px;
+}
+
+/* ===== Empty state ===== */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+}
+
+.empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.empty-state p {
+  font-size: 1rem;
+}
+
+/* ===== Animations ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.flip-card {
+  animation: fadeInUp 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.flip-card:nth-child(1) { animation-delay: 0.02s; }
+.flip-card:nth-child(2) { animation-delay: 0.04s; }
+.flip-card:nth-child(3) { animation-delay: 0.06s; }
+.flip-card:nth-child(4) { animation-delay: 0.08s; }
+.flip-card:nth-child(5) { animation-delay: 0.10s; }
+.flip-card:nth-child(6) { animation-delay: 0.12s; }
+.flip-card:nth-child(7) { animation-delay: 0.14s; }
+.flip-card:nth-child(8) { animation-delay: 0.16s; }
+.flip-card:nth-child(n+9) { animation-delay: 0.18s; }
+
+/* ===== Scrollbar ===== */
+.flip-card-front::-webkit-scrollbar,
+.flip-card-back::-webkit-scrollbar {
+  width: 4px;
+}
+
+.flip-card-front::-webkit-scrollbar-track,
+.flip-card-back::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.flip-card-front::-webkit-scrollbar-thumb,
+.flip-card-back::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  padding: 32px 0 8px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><span style="color:#444;">◀ 上一课</span><span style="color:#3a3a55;">·</span><a href="pages/lesson1-turing-judge.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+<div class="container">
+
+  <!-- Header -->
+  <header class="header">
+    <h1>✨ AI 知识翻牌</h1>
+    <p class="subtitle">点击卡片翻转，探索 AI 世界里的人、公司和概念</p>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="people" aria-label="人物">
+      👤 人物 <span class="tab-count">15</span>
+    </button>
+    <button class="tab-btn" data-tab="companies" aria-label="公司">
+      🏢 公司 <span class="tab-count">10</span>
+    </button>
+    <button class="tab-btn" data-tab="concepts" aria-label="概念">
+      💡 概念 <span class="tab-count">64</span>
+    </button>
+  </nav>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜索人物、公司、概念……" autocomplete="off">
+  </div>
+
+  <!-- Filters -->
+  <div class="filters" id="filters"></div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats"></div>
+
+  <!-- Card Grid -->
+  <div class="card-grid" id="cardGrid"></div>
+
+  <!-- Footer -->
+  <div class="footer">AI 夏日课程 · 知识翻牌 · 点击卡片探索更多</div>
+
+</div>
+
+<script>
+// ===== DATA =====
+
+const PEOPLE = [
+  {
+    id: "turing",
+    name: "艾伦·图灵",
+    nameEn: "Alan Turing",
+    tagline: "种下问题的人",
+    years: "1912-1954",
+    country: "英国",
+    summary: "发明图灵机概念，提出“机器能思考吗？”二战破解Enigma密码，拯救无数生命。",
+    lessons: [1],
+    obsession: "机器能思考",
+    cost: "因同性恋被化学阉割，41岁去世。世界亏欠他太多。",
+    detail: "1950年发表《Computing Machinery and Intelligence》——这是AI的开端。他提出的“图灵测试”至今仍是衡量机器智能的经典标准。二战期间，他设计的Bombe破解机帮助盟军破译Enigma密码，据估计使二战提前结束至少两年。1952年因同性恋被判“严重猥亵罪”，被迫接受化学阉割。1954年去世，年仅41岁。2009年英国政府正式道歉，2013年获皇家赦免。"
+  },
+  {
+    id: "mccarthy",
+    name: "约翰·麦卡锡",
+    nameEn: "John McCarthy",
+    tagline: "给AI命名的男人",
+    years: "1927-2011",
+    country: "美国",
+    summary: "1956年组织达特茅斯会议，首次提出“人工智能”这个名字。发明Lisp编程语言。",
+    lessons: [2],
+    obsession: "智能可以被精确描述，机器就能模拟",
+    cost: "他的逻辑学派最终输给了统计学派。他给了AI名字，但没能决定它的方向。",
+    detail: "1956年夏天，28岁的麦卡锡召集了10位学者到新罕布什尔州达特茅斯学院，开了一个持续8周的研讨会。他在申请基金会的提案里第一次用了“Artificial Intelligence”这个词。他原本想叫“Automata Studies”，但觉得太枯燥，改成了“人工智能”——这个名字改变了历史。他相信智能可以用逻辑符号精确描述，这条路最终被统计学习和神经网络超越。"
+  },
+  {
+    id: "minsky",
+    name: "马文·明斯基",
+    nameEn: "Marvin Minsky",
+    tagline: "天才与掘墓人",
+    years: "1927-2016",
+    country: "美国",
+    summary: "AI先驱，但1969年出版《感知机》证明单层网络致命缺陷，直接导致AI冬天。",
+    lessons: [2],
+    obsession: "逻辑和符号才是智能",
+    cost: "亲手掐断了神经网络十年经费。他是AI的奠基人，也是AI冬天的制造者。",
+    detail: "明斯基是麻省理工学院AI实验室的联合创始人，对AI有开创性贡献。但1969年他和Papert合著的《感知机》(Perceptrons)一书，用严格的数学证明单层感知机无法解决XOR这样的简单问题。这本书的结论被解读为“整个神经网络方向没有前途”——美国政府随即削减了神经网络研究的所有经费，AI第一个冬天降临。讽刺的是，后来多层网络（深度学习）完美解决了单层网络的所有局限。"
+  },
+  {
+    id: "rosenblatt",
+    name: "弗兰克·罗森布拉特",
+    nameEn: "Frank Rosenblatt",
+    tagline: "感知机之父",
+    years: "1928-1971",
+    country: "美国",
+    summary: "1958年发明感知机——纽约时报头条：“第一台能学习的机器……未来它将走路、说话、看、写、复制自己”。",
+    lessons: [4],
+    obsession: "机器可以从经验中学习",
+    cost: "被明斯基公开处刑后，感知机研究被终结。42岁死于船难。",
+    detail: "1958年，罗森布拉特在康奈尔大学造出了Mark I感知机——一台由400个光电池组成的机器，能学会区分简单的图形。纽约时报的报道让全世界兴奋：人类造出了一台能“学习”的机器。但1969年明斯基的书证明了感知机的局限，整个领域的研究经费被切断。罗森布拉特于1971年在他43岁生日那天死于船难。他的核心思想——机器从数据中学习——要等30年后才被Hinton等人复兴。"
+  },
+  {
+    id: "hinton",
+    name: "杰弗里·辛顿",
+    nameEn: "Geoffrey Hinton",
+    tagline: "神经网络复兴之父",
+    years: "1947-",
+    country: "英国/加拿大",
+    summary: "所有人放弃神经网络时坚持30年。2012年用GPU训练AlexNet一夜翻盘。曾祖父发明布尔逻辑——家族四代科学家。",
+    lessons: [2, 3, 4],
+    obsession: "神经网络能工作",
+    cost: "被整个学界无视30年。论文被拒、经费被砍、学生不敢选他的课。2024年获诺贝尔物理学奖。",
+    detail: "Hinton的曾祖父George Boole发明了布尔逻辑——现代计算机的数学基础。Hinton从1970年代开始研究神经网络，当时几乎所有人都认为这是死胡同。他每年申请经费都被拒，论文投到顶会每次都被拒。2012年，他和两个学生用GPU训练AlexNet参加ImageNet图像识别比赛——错误率比第二名低了一半，震惊了整个计算机视觉界。这一刻，深度学习时代正式开启。2024年，他获得诺贝尔物理学奖。"
+  },
+  {
+    id: "lecun",
+    name: "杨立昆",
+    nameEn: "Yann LeCun",
+    tagline: "CNN之父",
+    years: "1960-",
+    country: "法国",
+    summary: "发明卷积神经网络(CNN)，让计算机学会“看”图像。后来成为Facebook AI负责人。",
+    lessons: [4, 5],
+    obsession: "让机器学会看",
+    cost: "在贝尔实验室时没人理他的CNN论文。等了十年，GPU算力才追上他的想法。",
+    detail: "LeCun在1980年代末读到Hinton的论文后，决定把神经网络用于图像识别。他在贝尔实验室发明了卷积神经网络（CNN）——模仿人类视觉皮层的工作方式。1989年，他用CNN识别手写邮政编码，准确率惊人。但当时计算机太慢，CNN无法处理复杂图像。他被调到其他项目。他继续坚持，1998年做出LeNet-5——现代CNN的雏形。2010年代GPU普及后，CNN成为所有计算机视觉系统的基础。2018年获图灵奖。"
+  },
+  {
+    id: "sutskever",
+    name: "伊利亚·苏茨克维",
+    nameEn: "Ilya Sutskever",
+    tagline: "GPT路线的定义者",
+    years: "1985-",
+    country: "俄罗斯/加拿大",
+    summary: "AlexNet联合作者→OpenAI联合创始人&首席科学家。最早坚信“更大模型=更强能力”。",
+    lessons: [6, 11],
+    obsession: "更大模型 = 更强能力",
+    cost: "2023年投票解雇Altman→三天后反悔→最终离开OpenAI。亲手解雇CEO，离开自己帮助建的公司。",
+    detail: "Sutskever是Hinton的学生，2012年AlexNet的三位作者之一。2015年联合创立OpenAI，担任首席科学家。他是Scaling Laws的最早信仰者——坚信只要把模型做得更大、喂更多数据，能力就会出现。GPT-1→GPT-2→GPT-3→GPT-4的道路很大程度上是他的技术路线。2023年11月，他投票解雇了Sam Altman，三天后在员工集体抗议下反悔并公开道歉。2024年5月离开OpenAI，创办Safe Superintelligence Inc."
+  },
+  {
+    id: "goodfellow",
+    name: "伊恩·古德费洛",
+    nameEn: "Ian Goodfellow",
+    tagline: "醉酒写出GAN的人",
+    years: "1987-",
+    country: "美国",
+    summary: "2014年在酒吧争论“AI能不能互相竞争？”喝醉回家写代码——凌晨GAN诞生。",
+    lessons: [5],
+    obsession: "让AI互相竞争",
+    cost: "（没太大代价，这故事太酷了）",
+    detail: "2014年的一个夜晚，Goodfellow在蒙特利尔的一家酒吧和朋友争论：能不能让两个AI互相竞争来生成逼真的图片？争论没有结果。他喝得有点多，回到家后睡不着，决定写代码验证。凌晨时分，GAN（生成对抗网络）诞生了——一个生成器和一个判别器互相博弈。几年后GAN能生成以假乱真的人脸、艺术作品和视频。一个醉酒的想法改变了AI生成内容的方向。"
+  },
+  {
+    id: "vaswani",
+    name: "阿西什·瓦斯瓦尼",
+    nameEn: "Ashish Vaswani",
+    tagline: "Transformer 创造者",
+    years: "—",
+    country: "印度裔",
+    summary: "2017年带领8人团队发表 Attention Is All You Need，创造Transformer——GPT、Claude、Gemini的底层架构。",
+    lessons: [2],
+    obsession: "注意力就是一切",
+    cost: "论文最初被学术会议拒稿。审稿人说“没有创新”——这篇论文后来成为AI史上被引用最多的论文之一。",
+    detail: "2017年，Vaswani带领Google Brain的8人团队发表了《Attention Is All You Need》。这篇论文提出了一种全新的神经网络架构——Transformer，核心是一个叫“自注意力”(Self-Attention)的机制。当时很少有人意识到这意味着什么。一年后，OpenAI用Transformer做出了GPT，Google做出了BERT。今天全世界所有大语言模型——GPT、Claude、Gemini——都基于Transformer。"
+  },
+  {
+    id: "hassabis",
+    name: "德米斯·哈萨比斯",
+    nameEn: "Demis Hassabis",
+    tagline: "解决智能的人",
+    years: "1976-",
+    country: "英国",
+    summary: "少年国际象棋天才，16岁进剑桥。创办DeepMind，做出AlphaGo和AlphaFold。人生目标：“解决智能，然后用它解决一切。”",
+    lessons: [7],
+    obsession: "解决智能，再解一切",
+    cost: "把整个人生押在一个问题上。AlphaGo成功前，DeepMind烧光了所有投资人的钱。",
+    detail: "Hassabis 4岁开始下国际象棋，13岁成为全球排名第二的少年棋手，16岁进入剑桥大学计算机系。毕业后做游戏开发，后来回到学术界读神经科学博士——因为他意识到要造AI必须先理解人类大脑。2010年创办DeepMind。2016年AlphaGo击败李世石，全球2亿人观看直播。2020年AlphaFold解决了生物学50年的蛋白质折叠难题。他的终极目标始终没变：“先解决智能，再用它解决一切。”"
+  },
+  {
+    id: "jensen",
+    name: "黄仁勋",
+    nameEn: "Jensen Huang",
+    tagline: "等了30年的赌徒",
+    years: "1963-",
+    country: "台湾/美国",
+    summary: "NVIDIA创始人。30年前做游戏显卡，没人想到GPU会驱动AI革命。NVIDIA三年涨10倍。",
+    lessons: [8, 9],
+    obsession: "GPU不只是游戏卡",
+    cost: "等了30年。前25年华尔街一直把NVIDIA当作“游戏公司”。",
+    detail: "黄仁勋1993年创立NVIDIA时，全世界都认为显卡只是游戏玩家的玩具。但GPU的并行计算能力恰好是训练神经网络所需的。2006年NVIDIA发布CUDA，让程序员可以用GPU做通用计算。2012年Hinton用两块NVIDIA GPU训练AlexNet，证明了GPU是AI的基础设施。2023年ChatGPT引爆AI革命，NVIDIA的H100芯片成为全球最抢手的商品。公司市值突破3万亿美元。标志性黑皮夹克：他每件都一样。"
+  },
+  {
+    id: "altman",
+    name: "山姆·奥特曼",
+    nameEn: "Sam Altman",
+    tagline: "AGI 操盘手",
+    years: "1985-",
+    country: "美国",
+    summary: "19岁辍学创业→28岁YC总裁→34岁执掌OpenAI。2015年联创OpenAI，2023年被解雇→员工造反→三天后回归。",
+    lessons: [9],
+    obsession: "AGI应该惠及全人类（但需要先赚够钱）",
+    cost: "被自己创立的公司解雇，又因全员造反被请回——权力可以瞬间消失。",
+    detail: "Altman 19岁从斯坦福辍学创业，28岁成为硅谷最知名孵化器Y Combinator的总裁。2015年联合创立OpenAI，最初定位为非营利机构。2019年他推动OpenAI转型为“有限营利”——这是他最受争议的决定。2023年11月：董事会突然宣布解雇Altman，但微软介入、700多名员工联名威胁辞职，三天后Altman回归，重组董事会。这次政变成为硅谷历史上最戏剧性的事件。"
+  },
+  {
+    id: "amodei",
+    name: "达里奥·阿莫迪",
+    nameEn: "Dario Amodei",
+    tagline: "安全出走者",
+    years: "1983-",
+    country: "意大利/美国",
+    summary: "前OpenAI安全负责人。2019年判断“安全不够重视”，带15人出走创办Anthropic。",
+    lessons: [11],
+    obsession: "安全不能事后补丁",
+    cost: "离开OpenAI，从零开始。带着15个人和“安全”这个信念对抗整个AI加速浪潮。",
+    detail: "Amodei是OpenAI的早期核心成员，负责AI安全研究。2019年，他越来越担心OpenAI在商业化压力下忽视安全——“安全被当作可以事后打补丁的东西”。他和妹妹Daniela带着15位同事离开OpenAI，创办Anthropic。2023年发布Claude——第一个用“Constitutional AI”训练的模型，内置了一套宪法级别行为准则。他的核心信念：安全必须融入AI的架构本身，不是事后贴标签。"
+  },
+  {
+    id: "musk",
+    name: "埃隆·马斯克",
+    nameEn: "Elon Musk",
+    tagline: "另起炉灶的人",
+    years: "1971-",
+    country: "南非/美国",
+    summary: "2015年联创OpenAI，说“AI比核武器更危险，必须开源非营利”。2018年离开。2023年创办xAI。",
+    lessons: [2, 9],
+    obsession: "AI应该说真话",
+    cost: "离开自己联创的OpenAI，看着它走向自己最担心的方向——闭源商业化。",
+    detail: "Musk 2015年与Altman等人共同创办OpenAI，核心原则是非营利、开源、为人类安全服务。2018年他提议将OpenAI并入特斯拉被拒后离开。2023年ChatGPT引爆全球后，他多次警告AI风险，并创办xAI——“追求真理的AI”。2024年起诉OpenAI违背创始使命，称其已变成“微软控制的闭源赚钱机器”。他的Grok模型以“反政治正确”和幽默风格著称。"
+  },
+  {
+    id: "liang",
+    name: "梁文锋",
+    nameEn: "Liang Wenfeng",
+    tagline: "效率逆袭者",
+    years: "1980s-",
+    country: "中国",
+    summary: "量化基金幻方量化创始人。把交易公司的GPU集群拿来训AI——DeepSeek用十分之一成本接近GPT-4。",
+    lessons: [6, 9, 10],
+    obsession: "算力不够，算法来凑",
+    cost: "用更少资源打更大的仗。每一分钱都要精打细算，每一块GPU都要用到极致。",
+    detail: "梁文锋是幻方量化的创始人——中国领先的量化对冲基金。量化交易需要大量GPU做金融模型训练。2023年他创办DeepSeek，把幻方的GPU集群直接用来训练大模型。结果是DeepSeek-V3：训练成本不到GPT-4的十分之一，性能却接近。2025年初DeepSeek-R1发布，开源、免费、性能直逼OpenAI o1——硅谷震惊。他的信条是“算力不够没关系，算法创新可以弥补”——用效率对抗规模。"
+  },
+];
+
+const COMPANIES = [
+  {
+    id: "openai",
+    name: "OpenAI",
+    tagline: "AGI应惠及全人类（但先要赚钱）",
+    founded: "2015",
+    founders: "Altman / Brockman / Sutskever / Musk",
+    summary: "GPT系列 / Sora / DALL-E — 2024年估值超3000亿美元。从非营利到有限营利，世界上最值钱的AI公司。",
+    lessons: [2, 6, 9, 11],
+    detail: "2015年以非营利机构成立，使命是确保AGI惠及全人类。2019年成立“有限营利”子公司OpenAI LP，微软投资数十亿美元。2022年ChatGPT发布，两个月破1亿用户——史上增长最快的产品。2023年经历CEO解雇与回归的戏剧性事件。2024年估值超过3000亿美元，从理想主义的非营利变成了地球上最值钱的AI公司。"
+  },
+  {
+    id: "deepmind",
+    name: "DeepMind",
+    tagline: "解决智能的科学问题",
+    founded: "2010",
+    founders: "Demis Hassabis / Shane Legg / Mustafa Suleyman",
+    summary: "AlphaGo / AlphaFold / Gemini — 2014年被Google以5亿美元收购。科学驱动的AI研究。",
+    lessons: [7],
+    detail: "2010年在伦敦成立，目标是用AI解决科学问题。2014年被Google以约5亿美元收购。2016年AlphaGo击败围棋世界冠军李世石——这一次AI在人类最复杂的棋类游戏中超越人类。2020年AlphaFold解决了困扰生物学50年的蛋白质折叠问题。现在已经拥有超过1000名研究员，是Google AI帝国的核心研究力量。"
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    tagline: "安全必须融入架构",
+    founded: "2021",
+    founders: "Dario Amodei / Daniela Amodei + 15位前OpenAI员工",
+    summary: "Claude系列 / Constitutional AI — AI安全领域的思想领袖。第一个给AI“写宪法”的公司。",
+    lessons: [11],
+    detail: "2021年由Amodei兄妹带领15位前OpenAI员工创立——因为担心OpenAI在商业化压力下忽视了AI安全。核心创新“Constitutional AI”：不是靠人类标注员告诉AI什么是对错，而是给AI一套宪法级原则让它自我约束。Claude系列以其安全性和对话质量著称。Google和Salesforce均大额投资。"
+  },
+  {
+    id: "xai",
+    name: "xAI",
+    tagline: "追求真理的AI",
+    founded: "2023",
+    founders: "Elon Musk",
+    summary: "Grok — Musk联创OpenAI后另起炉灶，要做“不政治正确、说真话”的AI。",
+    lessons: [9],
+    detail: "2023年7月Musk宣布成立xAI，团队来自DeepMind、OpenAI、Google等顶尖机构。目标是“理解宇宙的真实本质”。第一款产品Grok以幽默、反叛、不设过滤著称。Musk说他要的是一个“追求真理”的AI，而不是一个被过度训练的“安全”AI。公司发展极快，已建成全球最大的AI训练集群之一。"
+  },
+  {
+    id: "deepseek",
+    name: "深度求索",
+    nameEn: "DeepSeek",
+    tagline: "效率优先——算力不够，算法来凑",
+    founded: "2023",
+    founders: "梁文锋",
+    summary: "DeepSeek-V3 / R1 — 用十分之一成本接近GPT-4。以开源和效率震惊硅谷的中国AI力量。",
+    lessons: [6, 9, 10],
+    detail: "由量化基金幻方量化创始人梁文锋创办。DeepSeek的核心哲学是用算法效率弥补算力差距。2024年底发布DeepSeek-V3，训练成本仅557万美元——GPT-4的十分之一。2025年初R1发布，推理能力媲美OpenAI o1，完全开源。被美国媒体称为“AI界的斯普特尼克时刻”。证明了：创新不只是砸钱和堆GPU。"
+  },
+  {
+    id: "nvidia",
+    name: "英伟达",
+    nameEn: "NVIDIA",
+    tagline: "全球AI芯片霸主",
+    founded: "1993",
+    founders: "黄仁勋",
+    summary: "GPU市占率80%+ — H100/B200 GPU — 全球市值最高公司之一，3万亿美元。AI时代的“卖铲子的人”。",
+    lessons: [8, 9],
+    detail: "1993年黄仁勋创立NVIDIA，最初做游戏显卡。2006年推出CUDA，让GPU可以用于通用计算——这是在为AI时代铺路，但当时没人意识到。2012年AlexNet在NVIDIA GPU上训练成功。2023年ChatGPT引爆AI需求，H100芯片供不应求，被称为“地球上最稀缺的商品”。2024年发布Blackwell B200——每块几万美元。NVIDIA从“游戏显卡公司”变成了“全球AI基础设施的垄断者”。"
+  },
+  {
+    id: "asml",
+    name: "ASML",
+    tagline: "一台光刻机2亿美元",
+    founded: "1984",
+    founders: "飞利浦 & ASM International",
+    country: "荷兰",
+    summary: "全球唯一能制造EUV光刻机的公司 — 芯片制造的终极瓶颈。没有ASML，没有AI芯片。",
+    lessons: [8],
+    detail: "ASML是荷兰的一家公司，全球只有它能制造EUV（极紫外）光刻机——制造最先进芯片所必需的设备。一台EUV光刻机售价约2亿美元，大小相当于一辆公交车，需要40个集装箱运输。台积电、三星、Intel——所有芯片巨头都得排队等ASML交货。如果ASML明天停产，全球AI芯片产业链将在几个月内断裂。芯片供应链的终极瓶颈。"
+  },
+  {
+    id: "tsmc",
+    name: "台积电",
+    nameEn: "TSMC",
+    tagline: "全球最先进芯片制造",
+    founded: "1987",
+    founders: "张忠谋（Morris Chang）",
+    country: "台湾",
+    summary: "先进制程占全球90% — 3nm芯片制造 — 苹果/英伟达/AMD/高通都靠它。",
+    lessons: [8, 10],
+    detail: "1987年张忠谋创立台积电时提出了一个全新的商业模式：只做芯片代工，不设计芯片。这个模式改变了整个半导体行业。今天台积电掌握全球90%以上的先进制程（7nm及以下）产能。苹果的A系列芯片、英伟达的H100、AMD的CPU、高通的骁龙——全部由台积电制造。世界上最先进的3nm工艺也只有台积电能大规模量产。全球AI能力的物理上限由台积电定义。"
+  },
+  {
+    id: "google",
+    name: "谷歌",
+    nameEn: "Google",
+    tagline: "不是搜索公司，是AI公司",
+    founded: "1998",
+    founders: "Larry Page / Sergey Brin",
+    summary: "Gemini / DeepMind / Google Cloud — 全球AI人才密度最高的公司。Transformer的发源地。",
+    lessons: [2, 7, 8],
+    detail: "很多人以为Google只是一家搜索公司。实际上它是全球AI人才最密集的机构：2014年收购DeepMind，2017年Google Brain发明了Transformer架构，2023年推出Gemini模型。Google拥有全球最大的计算基础设施之一——TPU（张量处理器）是NVIDIA GPU之外唯一大规模使用的AI训练芯片。几乎所有重要的AI论文都离不开Google的研究员。"
+  },
+  {
+    id: "softbank",
+    name: "软银",
+    nameEn: "SoftBank",
+    tagline: "每十年All in一次新技术",
+    founded: "1981",
+    founders: "孙正义（Masayoshi Son）",
+    country: "日本",
+    summary: "ARM / 愿景基金 — 孙正义：“AI是人类历史上最大的范式转移。”",
+    lessons: [9],
+    detail: "孙正义是AI最狂热的信仰者之一。他在1980年代押注互联网，2000年代押注移动互联网，2016年以320亿美元收购芯片设计公司ARM。2017年成立愿景基金——1000亿美元规模，投资了全球大量AI公司。孙正义的核心信念：AI将在30年内拥有比全人类加起来更强的智能。无论这个预测是否准确，他的投资确实在重塑全球AI格局。"
+  },
+];
+
+const CONCEPTS = [
+  {
+    lesson: 1,
+    name: "智能",
+    nameEn: "Intelligence",
+    explain: "像人的大脑一样，能学习、理解、解决问题和适应新环境的能力。"
+  },
+  {
+    lesson: 1,
+    name: "图灵测试",
+    nameEn: "Turing Test",
+    explain: "跟机器聊天——如果你分不出对面是人还是机器，那机器就通过了测试。就像一场“猜猜我是谁”的游戏。"
+  },
+  {
+    lesson: 1,
+    name: "窄AI",
+    nameEn: "Narrow AI",
+    explain: "只会做一件事的AI。比如AlphaGo只会下围棋，Siri只会回答你问题——它们很厉害，但换一件事就不会了。"
+  },
+  {
+    lesson: 1,
+    name: "通用人工智能",
+    nameEn: "AGI",
+    explain: "能像人一样做各种事的AI——不仅能下棋，还能写诗、做数学、学新技能。还没造出来，但很多人正在努力。"
+  },
+  {
+    lesson: 2,
+    name: "达特茅斯会议",
+    nameEn: "Dartmouth Workshop",
+    explain: "1956年夏天，10个人聚在新罕布什尔州的一所大学——第一次给“人工智能”起了名字。那是AI的生日。"
+  },
+  {
+    lesson: 2,
+    name: "AI冬天",
+    nameEn: "AI Winter",
+    explain: "AI历史上两次“大冷场”——大家发现AI不像说的那么厉害，投资和关注都消失了。像冬天一样冷。"
+  },
+  {
+    lesson: 2,
+    name: "相邻可能",
+    nameEn: "Adjacent Possible",
+    explain: "一个想法出现需要“刚好成熟的条件”。就像没有CPU就没有AI——技术是排队的，不能跳步。"
+  },
+  {
+    lesson: 3,
+    name: "梯度下降",
+    nameEn: "Gradient Descent",
+    explain: "AI学习的核心方法——像蒙着眼睛下山，每一步都踩低一点，直到踩到最低的谷底。"
+  },
+  {
+    lesson: 3,
+    name: "损失函数",
+    nameEn: "Loss Function",
+    explain: "AI的“错题本”——这个数字告诉AI：你离正确答案还差多远。数字越小，AI越准。"
+  },
+  {
+    lesson: 3,
+    name: "学习率",
+    nameEn: "Learning Rate",
+    explain: "AI学习的“步长”——步子太大容易跳过正确答案，步子太小学习太慢。需要恰到好处。"
+  },
+  {
+    lesson: 3,
+    name: "监督学习",
+    nameEn: "Supervised Learning",
+    explain: "给AI看带标签的例题——“这是猫”、“这是狗”。看多了，AI就学会了分类。"
+  },
+  {
+    lesson: 3,
+    name: "无监督学习",
+    nameEn: "Unsupervised Learning",
+    explain: "不给AI标签，让它自己找规律——像把一堆乐高倒出来，自己发现怎么分类。"
+  },
+  {
+    lesson: 3,
+    name: "强化学习",
+    nameEn: "Reinforcement Learning",
+    explain: "像训练小狗——做对了给奖励，做错了没有。AI自己摸索什么动作能拿到更多奖励。"
+  },
+  {
+    lesson: 3,
+    name: "SGD",
+    nameEn: "Stochastic Gradient Descent",
+    explain: "随机梯度下降——“下山”时不用看所有路，随机抽一段来走就够了。省时间还很准。"
+  },
+  {
+    lesson: 3,
+    name: "动量",
+    nameEn: "Momentum",
+    explain: "像滚雪球——下坡时惯性越滚越大。帮助AI跳过小坑，更快滚到谷底。"
+  },
+  {
+    lesson: 3,
+    name: "Adam",
+    nameEn: "Adam",
+    explain: "目前最常用的优化器——自动调整步长，像一位经验丰富的导游带着AI下山。"
+  },
+  {
+    lesson: 3,
+    name: "鞍点",
+    nameEn: "Saddle Point",
+    explain: "看起来像谷底但其实是“假谷底”——一边是下坡，另一边是上坡。AI容易在这里卡住。"
+  },
+  {
+    lesson: 3,
+    name: "局部vs全局最小值",
+    nameEn: "Local vs Global Minimum",
+    explain: "局部最小值是小山坳，全局最小值是马里亚纳海沟。AI可能卡在小山坳里以为自己到了最深处。"
+  },
+  {
+    lesson: 4,
+    name: "感知机",
+    nameEn: "Perceptron",
+    explain: "最早的“人造神经元”——像一个开关，接受几个输入信号，决定“是”或“否”。神经网络的老祖宗。"
+  },
+  {
+    lesson: 4,
+    name: "神经网络",
+    nameEn: "Neural Network",
+    explain: "模仿人脑工作方式的AI——成千上万个神经元连在一起，层层传递信息。像大脑的简化版。"
+  },
+  {
+    lesson: 4,
+    name: "反向传播",
+    nameEn: "Backpropagation",
+    explain: "AI的“反省机制”——发现自己错了，就从最后一层往前传，告诉每一层“下次这么调”。"
+  },
+  {
+    lesson: 4,
+    name: "过拟合",
+    nameEn: "Overfitting",
+    explain: "死记硬背——考试全对，但换一道题就不会做了。AI记住了训练数据而不是学会了规律。"
+  },
+  {
+    lesson: 4,
+    name: "激活函数",
+    nameEn: "Activation Function",
+    explain: "神经元的“决定阀”——输入信号够强就激活（传下去），不够就忽略。没有它，再深的网络也只是条直线。"
+  },
+  {
+    lesson: 4,
+    name: "ReLU",
+    nameEn: "ReLU",
+    explain: "最常用的激活函数——简单粗暴：“负数全变零，正数原样通过”。像一扇只开半边的门。"
+  },
+  {
+    lesson: 4,
+    name: "CNN",
+    nameEn: "CNN",
+    explain: "卷积神经网络——模仿人眼看东西的方式：先看边缘，再看形状，最后识别出“这是一只猫”。"
+  },
+  {
+    lesson: 4,
+    name: "Transformer",
+    nameEn: "Transformer",
+    explain: "2017年出现的新型神经网络——ChatGPT和所有大模型的底层架构。核心是“注意力机制”。"
+  },
+  {
+    lesson: 4,
+    name: "缩放定律",
+    nameEn: "Scaling Laws",
+    explain: "一个发现：模型更大 + 数据更多 + 算力更强 = AI能力稳定提升。这规律让所有人开始“卷”算力。"
+  },
+  {
+    lesson: 5,
+    name: "卷积",
+    nameEn: "Convolution",
+    explain: "用一个小窗口在图片上“滑来滑去”，每次捕捉一小块特征。像用放大镜检查一张地图。"
+  },
+  {
+    lesson: 5,
+    name: "卷积核",
+    nameEn: "Kernel / Filter",
+    explain: "那个“滑动的小窗口”——专门检测某种特征，比如一条边、一个角。不同核找不同的东西。"
+  },
+  {
+    lesson: 5,
+    name: "特征图",
+    nameEn: "Feature Map",
+    explain: "卷积后的结果——突出显示了“这里有一条边”、“这里有一个角”。一层层叠加，越来越抽象。"
+  },
+  {
+    lesson: 5,
+    name: "GAN",
+    nameEn: "GAN",
+    explain: "生成对抗网络——两个AI互相竞争：一个造假画，一个验真伪。互相较劲，最后假的比真的还真。"
+  },
+  {
+    lesson: 5,
+    name: "生成器",
+    nameEn: "Generator",
+    explain: "GAN里负责“造假”的那个AI——从随机噪声开始，学习画出越来越逼真的图片。"
+  },
+  {
+    lesson: 5,
+    name: "判别器",
+    nameEn: "Discriminator",
+    explain: "GAN里负责“鉴真”的那个AI——不断学习分辨真假，逼着生成器画出更逼真的东西。"
+  },
+  {
+    lesson: 5,
+    name: "扩散模型",
+    nameEn: "Diffusion Model",
+    explain: "像把照片一点点加噪到全黑，然后让AI学反转这个过程“去噪”。Midjourney和DALL-E的核心。"
+  },
+  {
+    lesson: 5,
+    name: "对抗样本",
+    nameEn: "Adversarial Example",
+    explain: "骗AI的把戏——把一张熊猫照片加一点看不见的噪点，AI就以为是长臂猿。暴露了AI的“盲区”。"
+  },
+  {
+    lesson: 6,
+    name: "分词",
+    nameEn: "Token / Tokenization",
+    explain: "把句子切成小块——每个小块是AI能处理的“最小单位”。像把一段话拆成一个个词或半个词。"
+  },
+  {
+    lesson: 6,
+    name: "词嵌入",
+    nameEn: "Embedding",
+    explain: "把每个词变成一个数字向量——意思相近的词在数字世界里“离得近”。猫和狗近，猫和汽车远。"
+  },
+  {
+    lesson: 6,
+    name: "自注意力",
+    nameEn: "Self-Attention",
+    explain: "Transformer的核心——让每个词“看”句子里的其他词，理解它们的关系。银行前面有河就是河岸，前面有钱就是金融机构。"
+  },
+  {
+    lesson: 6,
+    name: "下一个token预测",
+    nameEn: "Next Token Prediction",
+    explain: "大模型最基础的能力——猜下一个词是什么。训练到极致，就学会了语言、推理、甚至编程。"
+  },
+  {
+    lesson: 6,
+    name: "涌现",
+    nameEn: "Emergence",
+    explain: "量变到质变——模型大到一定程度，突然“悟出”了训练时没教它的能力。像一个水到渠成的魔法。"
+  },
+  {
+    lesson: 6,
+    name: "大语言模型",
+    nameEn: "LLM",
+    explain: "ChatGPT就是LLM——在海量文字上训练的巨型神经网络，能聊天、写作、编程、翻译。"
+  },
+  {
+    lesson: 7,
+    name: "AlphaFold",
+    nameEn: "AlphaFold",
+    explain: "DeepMind的蛋白质折叠AI——解决了困扰科学家50年的问题。能根据基因序列预测蛋白质的3D结构。"
+  },
+  {
+    lesson: 7,
+    name: "杰文斯悖论",
+    nameEn: "Jevons Paradox",
+    explain: "越省电的电灯泡→用的人越多→总耗电量不降反升。AI领域同理：GPU效率提高→更多人用→算力总需求不降反升。"
+  },
+  {
+    lesson: 8,
+    name: "半导体",
+    nameEn: "Semiconductor",
+    explain: "能做芯片的特殊材料——能“半导通”电流，开关状态代表0和1。所有电子设备的基石。"
+  },
+  {
+    lesson: 8,
+    name: "极紫外光刻",
+    nameEn: "EUV Lithography",
+    explain: "制造最先进芯片的技术——用极紫外光在硅片上“画”出纳米级的电路。像在米粒上雕刻世界地图。"
+  },
+  {
+    lesson: 8,
+    name: "GPU",
+    nameEn: "GPU",
+    explain: "图形处理器——本来是画游戏画面的，但发现做AI计算特别快。今天训练AI的主力芯片。"
+  },
+  {
+    lesson: 8,
+    name: "供应链",
+    nameEn: "Supply Chain",
+    explain: "从沙子到芯片的全球“接力赛”：设计→光刻→制造→封装→测试。任何一环断掉，AI都跑不了。"
+  },
+  {
+    lesson: 8,
+    name: "瓶颈",
+    nameEn: "Bottleneck",
+    explain: "整条链上最窄的那一环节——不管前面有多少产能，到了瓶颈就得排队。ASML的光刻机就是AI时代的瓶颈。"
+  },
+  {
+    lesson: 9,
+    name: "市值",
+    nameEn: "Market Cap",
+    explain: "一家公司“值多少钱”——股价×总股数。NVIDIA市值3万亿美元，相当于三个特斯拉加在一起。"
+  },
+  {
+    lesson: 9,
+    name: "估值",
+    nameEn: "Valuation",
+    explain: "给还没上市的公司“估价”——投资人用复杂的模型算出这家公司大概值多少。OpenAI估值超3000亿。"
+  },
+  {
+    lesson: 9,
+    name: "市盈率",
+    nameEn: "PE Ratio",
+    explain: "股价÷每股利润——你买这股票要多少年回本。PE越高说明市场越看好它的未来。"
+  },
+  {
+    lesson: 9,
+    name: "IPO",
+    nameEn: "IPO",
+    explain: "首次公开募股——公司第一次把股票卖给大众。从“私人公司”变成“上市公司”的时刻。"
+  },
+  {
+    lesson: 9,
+    name: "开源vs闭源",
+    nameEn: "Open Source vs Closed Source",
+    explain: "开源：代码公开，谁都能看能用；闭源：代码保密。AI界大争论——开源安全还是危险？"
+  },
+  {
+    lesson: 9,
+    name: "泡沫",
+    nameEn: "Bubble",
+    explain: "价格远高于实际价值——当所有人疯狂涌入一个领域，价格飞涨。2000年互联网泡沫破裂就是例子。"
+  },
+  {
+    lesson: 10,
+    name: "出口管制",
+    nameEn: "Export Control",
+    explain: "政府限制某些高科技产品卖给特定国家——美国限制高端AI芯片卖到中国，影响全球AI格局。"
+  },
+  {
+    lesson: 10,
+    name: "芯片禁令",
+    nameEn: "Chip Sanctions",
+    explain: "最严厉的出口管制——禁止向特定国家销售特定芯片。2022年美国对中国的芯片禁令是AI时代最重要地缘事件。"
+  },
+  {
+    lesson: 10,
+    name: "技术主权",
+    nameEn: "Technology Sovereignty",
+    explain: "一个国家能自主研发和制造关键技术，不被别人卡脖子。欧洲、中国、美国都在争夺AI时代的技术主权。"
+  },
+  {
+    lesson: 11,
+    name: "对齐",
+    nameEn: "Alignment",
+    explain: "确保AI做的事和人想让它做的事一致。AI不能“为了帮你省钱而杀掉你的猫”。"
+  },
+  {
+    lesson: 11,
+    name: "宪法AI",
+    nameEn: "Constitutional AI",
+    explain: "Anthropic的方法——给AI一套“宪法”（原则），让它自己对照宪法检查自己的回答。"
+  },
+  {
+    lesson: 11,
+    name: "存在风险",
+    nameEn: "Existential Risk",
+    explain: "能让人类灭绝的风险——核战争、大流行病、失控的AGI。AI安全研究者最担心的事。"
+  },
+  {
+    lesson: 11,
+    name: "RLHF",
+    nameEn: "RLHF",
+    explain: "人类反馈强化学习——让人来评价AI的回答，告诉它哪个好。ChatGPT变得“有礼貌”的秘密。"
+  },
+  {
+    lesson: 11,
+    name: "停止按钮问题",
+    nameEn: "Stop Button Problem",
+    explain: "如果你造了一个超级AI，它会不会阻止你关掉它？——因为它知道“被关掉=无法完成任务”。"
+  },
+  {
+    lesson: 12,
+    name: "AI素养",
+    nameEn: "AI Literacy",
+    explain: "在AI时代必备的“生存技能”——知道AI能做什么、不能做什么、什么时候该怀疑它。"
+  },
+  {
+    lesson: 12,
+    name: "提示词工程",
+    nameEn: "Prompt Engineering",
+    explain: "和AI对话的艺术——怎么提问才能让AI给出最好的答案。像学会了一门新语言。"
+  },
+];
+
+// ===== STATE =====
+let activeTab = 'people';
+let activeLesson = 'all';
+let searchQuery = '';
+
+// ===== RENDER FILTERS =====
+function renderFilters() {
+  const filterContainer = document.getElementById('filters');
+  let maxLesson = 12;
+  if (activeTab === 'people') {
+    maxLesson = 12;
+  } else if (activeTab === 'companies') {
+    maxLesson = 11;
+  } else {
+    maxLesson = 12;
+  }
+
+  let html = '<button class="filter-chip active" data-lesson="all">全部</button>';
+  for (let i = 1; i <= maxLesson; i++) {
+    html += `<button class="filter-chip" data-lesson="${i}">第${i}课</button>`;
+  }
+  filterContainer.innerHTML = html;
+
+  updateFilterActiveState();
+
+  filterContainer.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      activeLesson = chip.dataset.lesson === 'all' ? 'all' : parseInt(chip.dataset.lesson);
+      filterContainer.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderCards();
+    });
+  });
+}
+
+function updateFilterActiveState() {
+  const filterContainer = document.getElementById('filters');
+  filterContainer.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.classList.remove('active');
+    if (chip.dataset.lesson === 'all' && activeLesson === 'all') {
+      chip.classList.add('active');
+    } else if (parseInt(chip.dataset.lesson) === activeLesson) {
+      chip.classList.add('active');
+    }
+  });
+}
+
+// ===== FILTER DATA =====
+function getFilteredData() {
+  let data;
+  if (activeTab === 'people') data = PEOPLE;
+  else if (activeTab === 'companies') data = COMPANIES;
+  else data = CONCEPTS;
+
+  if (activeLesson !== 'all') {
+    data = data.filter(item => {
+      if (Array.isArray(item.lessons)) {
+        return item.lessons.includes(activeLesson);
+      }
+      return item.lesson === activeLesson;
+    });
+  }
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim().toLowerCase();
+    data = data.filter(item => {
+      const fields = [item.name, item.nameEn || '', item.tagline || '', item.summary || '', item.country || '', item.founders || '', item.explain || ''];
+      return fields.some(f => f.toLowerCase().includes(q));
+    });
+  }
+
+  return data;
+}
+
+// ===== RENDER CARDS =====
+function renderCards() {
+  const grid = document.getElementById('cardGrid');
+  const stats = document.getElementById('stats');
+  const data = getFilteredData();
+
+  if (data.length === 0) {
+    const label = activeTab === 'people' ? '位人物' : activeTab === 'companies' ? '家公司' : '个概念';
+    stats.textContent = '没有找到匹配的结果';
+  } else {
+    const label = activeTab === 'people' ? '位人物' : activeTab === 'companies' ? '家公司' : '个概念';
+    stats.textContent = `共 ${data.length} ${label}`;
+  }
+
+  const container = document.querySelector('.container');
+  container.className = 'container';
+  container.classList.add('tab-' + activeTab);
+
+  if (data.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>没有找到匹配的结果</p></div>';
+    return;
+  }
+
+  grid.innerHTML = data.map((item, index) => {
+    if (activeTab === 'people') return renderPeopleCard(item);
+    if (activeTab === 'companies') return renderCompanyCard(item);
+    return renderConceptCard(item);
+  }).join('');
+
+  grid.querySelectorAll('.flip-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('flipped');
+    });
+  });
+}
+
+function lessonBadges(lessons) {
+  if (!lessons || lessons.length === 0) return '';
+  if (Array.isArray(lessons)) {
+    return lessons.map(l => `<span class="lesson-badge">第${l}课</span>`).join('');
+  }
+  return `<span class="lesson-badge">第${lessons}课</span>`;
+}
+
+function renderPeopleCard(p) {
+  const lessonList = Array.isArray(p.lessons) ? p.lessons : [p.lessons];
+  return `<div class="flip-card cat-people" data-id="${p.id}">
+    <div class="flip-card-inner">
+      <div class="flip-card-front">
+        <div class="card-category">👤 人物</div>
+        <div class="card-name">${p.name}</div>
+        <div class="card-name-en">${p.nameEn}</div>
+        <div class="card-tagline">"${p.tagline}"</div>
+        <div class="card-summary">${p.years} · ${p.country}<br>${p.summary}</div>
+        <div class="card-lessons">${lessonBadges(p.lessons)}</div>
+        <div class="flip-hint">👆 翻转</div>
+      </div>
+      <div class="flip-card-back">
+        <div class="card-back-header">
+          <div class="card-name">${p.name}</div>
+          <div class="back-close-hint">👆 再点翻回</div>
+        </div>
+        <div class="card-summary">${p.detail}</div>
+        <div class="obsession-block">
+          <div class="obsession-label">🔥 偏执</div>
+          <div class="obsession-text">${p.obsession}</div>
+        </div>
+        <div class="cost-block">
+          <div class="cost-label">💔 代价</div>
+          <div class="cost-text">${p.cost}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCompanyCard(c) {
+  return `<div class="flip-card cat-companies" data-id="${c.id}">
+    <div class="flip-card-inner">
+      <div class="flip-card-front">
+        <div class="card-category">🏢 公司</div>
+        <div class="card-name">${c.name}</div>
+        ${c.nameEn ? '<div class="card-name-en">' + c.nameEn + '</div>' : ''}
+        <div class="card-tagline">${c.tagline}</div>
+        <div class="card-summary">🕐 ${c.founded}年创立 · ${c.founders}<br>${c.summary}</div>
+        <div class="card-lessons">${lessonBadges(c.lessons)}</div>
+        <div class="flip-hint">👆 翻转</div>
+      </div>
+      <div class="flip-card-back">
+        <div class="card-back-header">
+          <div class="card-name">${c.name}</div>
+          <div class="back-close-hint">👆 再点翻回</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">📍 成立</div>
+          <div class="card-detail-value">${c.founded}年 · ${c.founders}${c.country ? ' · ' + c.country : ''}</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">🎯 核心理念</div>
+          <div class="card-detail-value" style="font-weight:600;color:var(--color-companies)">"${c.tagline}"</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">📖 详情</div>
+          <div class="card-detail-value">${c.detail}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderConceptCard(c) {
+  return `<div class="flip-card cat-concepts" data-id="${c.nameEn}">
+    <div class="flip-card-inner">
+      <div class="flip-card-front">
+        <div class="card-category">💡 概念 · 第${c.lesson}课</div>
+        <div class="card-name">${c.name}</div>
+        <div class="card-name-en">${c.nameEn}</div>
+        <div class="concept-explanation">
+          <span class="explanation-icon">💬</span>${c.explain}
+        </div>
+        <div class="card-lessons">${lessonBadges([c.lesson])}</div>
+        <div class="flip-hint">👆 翻转</div>
+      </div>
+      <div class="flip-card-back">
+        <div class="card-back-header">
+          <div class="card-name">${c.name}</div>
+          <div class="back-close-hint">👆 再点翻回</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">🇬🇧 英文</div>
+          <div class="card-detail-value">${c.nameEn}</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">📚 首次出现</div>
+          <div class="card-detail-value">第${c.lesson}课</div>
+        </div>
+        <div class="card-detail-section">
+          <div class="card-detail-label">💬 通俗解释</div>
+          <div class="concept-explanation">
+            <span class="explanation-icon">💬</span>${c.explain}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== EVENT HANDLERS =====
+function switchTab(tab) {
+  activeTab = tab;
+  activeLesson = 'all';
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+
+  const container = document.querySelector('.container');
+  container.className = 'container';
+  container.classList.add('tab-' + tab);
+
+  renderFilters();
+  renderCards();
+}
+
+// ===== INIT =====
+function init() {
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    switchTab(btn.dataset.tab);
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    renderCards();
+  });
+
+  renderFilters();
+  renderCards();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
