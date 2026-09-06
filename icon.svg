@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f0f1a"/>
+  <rect x="24" y="24" width="464" height="464" rx="80" fill="none" stroke="#f5b942" stroke-width="8" opacity="0.85"/>
+  <text x="256" y="316" font-size="230" text-anchor="middle" dominant-baseline="middle">🤖</text>
+  <text x="256" y="452" font-size="44" text-anchor="middle" fill="#22d3ee" font-family="sans-serif" font-weight="700">AI 夏令营</text>
+</svg>
