@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>行业热力图 + 真/假游戏 — AI 渗透了哪些行业？</title>
+<style>
+/* ===== Theme ===== */
+:root {
+  --bg: #0f0f1a; --panel: #1a1a2e; --panel2: #16213e;
+  --border: #2a2a4a; --text: #e0e0e0; --text2: #a0a0b8; --text-bright: #fff;
+  --red: #ef4444; --orange: #f0a500; --purple: #e8795f;
+  --blue: #3b82f6; --green: #4ade80; --cyan: #22d3ee;
+  --gray: #6b7280;
+  --font: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; overflow-x: hidden; line-height: 1.6;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 28px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(240,165,0,0.06), transparent);
+}
+.header h1 { font-size: 1.7rem; color: var(--text-bright); }
+.header h1 span { background: linear-gradient(90deg, var(--orange), #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header p { margin-top: 6px; color: var(--text2); font-size: 0.92rem; }
+
+/* ===== Section Title ===== */
+.section-title {
+  text-align: center; padding: 28px 20px 6px;
+  font-size: 1.2rem; font-weight: 700; color: var(--text-bright);
+}
+
+/* ===== Heatmap Grid ===== */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px; max-width: 1000px; margin: 16px auto; padding: 0 20px;
+}
+.heat-card {
+  position: relative; border-radius: 12px; padding: 20px;
+  cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
+  overflow: hidden; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between;
+  border: 1px solid transparent;
+}
+.heat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.4); }
+.heat-card:active { transform: scale(0.98); }
+.heat-card .card-bg {
+  position: absolute; inset: 0; opacity: 0.12;
+  transition: opacity 0.3s;
+}
+.heat-card:hover .card-bg { opacity: 0.2; }
+.heat-card .card-content { position: relative; z-index: 1; }
+.heat-card .card-icon { font-size: 2rem; margin-bottom: 6px; display: block; }
+.heat-card .card-title { font-size: 1.1rem; font-weight: 700; color: var(--text-bright); }
+.heat-card .card-tagline { font-size: 0.82rem; color: var(--text2); margin-top: 4px; }
+.heat-card .card-meta {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  font-size: 0.78rem; position: relative; z-index: 1;
+}
+.heat-card .penetration-bar {
+  flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+.heat-card .penetration-fill {
+  height: 100%; border-radius: 3px; transition: width 0.5s;
+}
+.heat-card .penetration-label { font-weight: 600; white-space: nowrap; }
+
+/* intensity colors */
+.intensity-high .card-bg { background: var(--red); }
+.intensity-high { border-color: rgba(239,68,68,0.3); }
+.intensity-high .penetration-fill { background: var(--red); }
+.intensity-high .penetration-label { color: var(--red); }
+
+.intensity-med-high .card-bg { background: var(--orange); }
+.intensity-med-high { border-color: rgba(240,165,0,0.3); }
+.intensity-med-high .penetration-fill { background: var(--orange); }
+.intensity-med-high .penetration-label { color: var(--orange); }
+
+.intensity-med .card-bg { background: var(--green); }
+.intensity-med { border-color: rgba(74,222,128,0.25); }
+.intensity-med .penetration-fill { background: var(--green); }
+.intensity-med .penetration-label { color: var(--green); }
+
+.intensity-low-med .card-bg { background: var(--gray); }
+.intensity-low-med { border-color: rgba(107,114,128,0.3); }
+.intensity-low-med .penetration-fill { background: var(--gray); }
+.intensity-low-med .penetration-label { color: var(--text2); }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  padding: 20px;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-box {
+  background: var(--panel); border-radius: 14px; max-width: 540px; width: 100%;
+  padding: 28px 24px 22px; border: 1px solid var(--border);
+  position: relative; max-height: 85vh; overflow-y: auto;
+  transform: translateY(12px); transition: transform 0.25s;
+}
+.modal-overlay.active .modal-box { transform: translateY(0); }
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text2); font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.modal-close:hover { color: #fff; border-color: var(--red); }
+.modal-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+.modal-title { font-size: 1.3rem; font-weight: 700; color: var(--text-bright); margin-bottom: 4px; }
+.modal-field { font-size: 0.82rem; color: var(--text2); margin-bottom: 14px; }
+.modal-desc { font-size: 0.92rem; color: var(--text); line-height: 1.7; margin-bottom: 14px; }
+.modal-stats {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.modal-stat {
+  background: var(--panel2); border-radius: 8px; padding: 10px 14px;
+  border: 1px solid var(--border); min-width: 100px; flex: 1;
+}
+.modal-stat .stat-val { font-size: 1.15rem; font-weight: 700; color: var(--orange); }
+.modal-stat .stat-label { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+.modal-story {
+  background: rgba(240,165,0,0.06); border-left: 3px solid var(--orange);
+  padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 0.85rem;
+  color: var(--text); line-height: 1.7;
+}
+.modal-story strong { color: var(--orange); }
+
+/* ===== Game Section ===== */
+.game-container {
+  max-width: 800px; margin: 16px auto 0; padding: 0 20px;
+}
+.game-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+}
+.game-round-label { font-size: 0.88rem; font-weight: 600; color: var(--text2); }
+.game-round-label span { color: var(--orange); font-size: 1.1rem; }
+.game-score { font-size: 0.92rem; color: var(--text-bright); }
+.game-score .correct { color: var(--green); }
+.game-score .wrong { color: var(--red); }
+.round-tabs { display: flex; gap: 6px; }
+.round-tab {
+  padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel2); color: var(--text2); cursor: pointer;
+  font-size: 0.8rem; font-family: var(--font); transition: all 0.2s;
+}
+.round-tab:hover { border-color: var(--orange); color: var(--text); }
+.round-tab.active { background: var(--orange); border-color: var(--orange); color: #0f0f1a; font-weight: 600; }
+.round-tab.done { border-color: var(--green); color: var(--green); }
+.game-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.game-card {
+  background: var(--panel); border-radius: 12px; padding: 16px;
+  cursor: pointer; transition: all 0.3s; position: relative;
+  border: 2px solid var(--border); min-height: 180px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 8px; overflow: hidden;
+}
+.game-card:hover:not(.revealed) { border-color: var(--orange); transform: translateY(-2px); }
+.game-card:active:not(.revealed) { transform: scale(0.97); }
+.game-card .gc-icon { font-size: 2rem; }
+.game-card .gc-text { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+.game-card .gc-hint { font-size: 0.72rem; color: var(--text2); }
+
+/* revealed states */
+.game-card.true-reveal {
+  border-color: var(--green) !important;
+  animation: pulse-green 0.6s ease;
+}
+.game-card.false-reveal {
+  border-color: var(--red) !important;
+  animation: shake 0.5s ease;
+}
+.game-card.wrong-guess {
+  border-color: var(--red) !important;
+  animation: shake 0.5s ease;
+}
+@keyframes pulse-green {
+  0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(74,222,128,0); }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+.game-card .gc-badge {
+  position: absolute; top: 8px; right: 8px;
+  padding: 2px 8px; border-radius: 10px; font-size: 0.68rem;
+  font-weight: 700; opacity: 0; transition: opacity 0.3s;
+}
+.game-card.revealed .gc-badge { opacity: 1; }
+.game-card.true-reveal .gc-badge { background: var(--green); color: #000; }
+.game-card.false-reveal .gc-badge { background: var(--red); color: #fff; }
+.game-card.revealed.true .gc-badge { background: var(--green); color: #000; }
+.game-card.revealed.false .gc-badge { background: var(--red); color: #fff; }
+.game-card.revealed { pointer-events: none; }
+
+.game-feedback {
+  text-align: center; margin-top: 14px; min-height: 36px;
+  font-size: 1rem; font-weight: 600; transition: all 0.3s;
+}
+.game-feedback.correct { color: var(--green); }
+.game-feedback.wrong { color: var(--red); }
+
+.game-actions { text-align: center; margin-top: 8px; }
+.btn {
+  padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--panel2); color: var(--text); cursor: pointer;
+  font-size: 0.85rem; font-family: var(--font); transition: all 0.2s;
+}
+.btn:hover { border-color: var(--orange); color: #fff; }
+.btn.primary { background: var(--orange); border-color: var(--orange); color: #0f0f1a; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.15); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 32px 20px 24px;
+  color: var(--text2); font-size: 0.78rem;
+  border-top: 1px solid var(--border); margin-top: 28px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 750px) {
+  .heatmap-grid { grid-template-columns: repeat(2, 1fr); }
+  .game-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .heatmap-grid { grid-template-columns: 1fr; gap: 12px; }
+  .game-cards { grid-template-columns: 1fr; }
+  .header h1 { font-size: 1.3rem; }
+  .section-title { font-size: 1rem; }
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson6-llm-viz.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson8-supply-chain.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<header class="header">
+  <h1>🌐 <span>行业热力图</span> + 真/假游戏</h1>
+  <p>AI 正在渗透哪些行业？哪些是真的，哪些是故事？</p>
+</header>
+
+<!-- ====== HEATMAP ====== -->
+<div class="section-title">🔥 AI 渗透度热力图 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 点击卡片查看详情</span></div>
+<div class="heatmap-grid" id="heatmapGrid"></div>
+
+<div class="modal-overlay" id="heatModal">
+  <div class="modal-box">
+    <button class="modal-close" id="heatModalClose">✕</button>
+    <div id="heatModalContent"></div>
+  </div>
+</div>
+
+<!-- ====== TRUE/FALSE GAME ====== -->
+<div class="section-title">🎮 真/假挑战 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 找出假的！</span></div>
+<div class="game-container">
+  <div class="game-header">
+    <div class="round-tabs" id="roundTabs"></div>
+    <div class="game-round-label">
+      第 <span id="roundNum">1</span> / 3 组
+      <span class="game-score">
+        ✅ <span class="correct" id="scoreCorrect">0</span>
+        ❌ <span class="wrong" id="scoreWrong">0</span>
+      </span>
+    </div>
+  </div>
+  <div class="game-cards" id="gameCards"></div>
+  <div class="game-feedback" id="gameFeedback"></div>
+  <div class="game-actions">
+    <button class="btn primary" id="btnNextGame" disabled>下一组 ▶</button>
+  </div>
+</div>
+
+<div class="footer">
+  AI 夏令营 · 第 7 课 · 行业热力图 · 数据来自公开报道与学术研究
+</div>
+
+<script>
+// ===== DATA =====
+const industries = [
+  { id:'medical', icon:'🏥', title:'医疗健康', tagline:'AI 读 CT、诊断癌症、发现新药',
+    field:'医疗影像 / 药物研发', intensity:'high', pct:92,
+    desc:'AI 在医疗影像诊断领域已达专家级水平。深度学习模型可在数秒内分析 CT、MRI 影像，检测肺结节、乳腺癌、视网膜病变等疾病。2023 年一项元分析显示 AI 诊断准确率已与资深放射科医生相当，部分任务甚至超越人类。',
+    stats:[{v:'95%+',l:'肺结节检测准确率'},{v:'$45B',l:'2026年AI医疗市场预测'},{v:'150+',l:'FDA批准AI医疗设备'}],
+    story:'<strong>吴恩达团队 2017 年里程碑</strong>：斯坦福吴恩达团队用 CheXNet 在 ChestX-ray14 数据集上训练 121 层卷积网络，检测肺炎的准确率超过了 4 位斯坦福放射科医生的平均水平。这篇论文标志着 AI 医疗正式进入临床视野。'
+  },
+  { id:'science', icon:'🧬', title:'生命科学', tagline:'AlphaFold 预测 2 亿+ 蛋白质结构',
+    field:'蛋白质结构预测', intensity:'high', pct:88,
+    desc:'DeepMind 的 AlphaFold 在 2020 年 CASP14 大赛中以颠覆性表现解决了困扰生物学 50 年的"蛋白质折叠问题"：仅凭氨基酸序列就能预测蛋白质的 3D 结构，准确度达到实验级。2022 年公开了超过 2 亿个蛋白质结构预测。',
+    stats:[{v:'2亿+',l:'已公开蛋白质结构'},{v:'50年',l:'困扰科学界的难题'},{v:'2024',l:'诺贝尔化学奖'}],
+    story:'<strong>Demis Hassabis 与 John Jumper</strong>：2024 年诺贝尔化学奖授予 AlphaFold 团队的 Hassabis 和 Jumper。Jumper 加入 DeepMind 时才 30 岁出头，他主导的算法创新让蛋白质结构预测精度从 40% 跃升到 90%+。'
+  },
+  { id:'creative', icon:'🎨', title:'创意设计', tagline:'Midjourney 重新定义数字创作',
+    field:'AI 图像生成', intensity:'med-high', pct:72,
+    desc:'Midjourney、DALL·E、Stable Diffusion 等 AI 图像生成工具已拥有数千万用户。从概念设计、广告创意到游戏美术，AI 正成为创作者的"副驾驶"。Midjourney v7（2025年4月发布）的写实度已让专业设计师都难以分辨：V8 已经在 2026 年进入 Alpha 测试。',
+    stats:[{v:'1500万+',l:'Midjourney用户'},{v:'$10B',l:'生成式AI视觉市场(2027)'},{v:'<10秒',l:'平均生图时间'}],
+    story:'<strong>David Holz 的信念</strong>：Midjourney 创始人 David Holz 曾是 Leap Motion 的 CTO。他说："我们不是在制造工具，我们在制造新的想象力介质。"'
+  },
+  { id:'autonomous', icon:'🚗', title:'自动驾驶', tagline:'2000 万英里无人驾驶经验',
+    field:'L4 级自动驾驶', intensity:'med-high', pct:68,
+    desc:'Waymo 已在凤凰城、旧金山、洛杉矶运营无人驾驶出租车服务，累计行驶超过 2000 万英里。特斯拉 FSD 已推送数百万辆车。中国的百度 Apollo、小马智行也在多个城市部署 Robotaxi。',
+    stats:[{v:'2000万+',l:'Waymo自动驾驶英里'},{v:'4城',l:'Waymo运营城市'},{v:'$200B',l:'2030年市场预测'}],
+    story:'<strong>Waymo 的 15 年长跑</strong>：始于 2009 年 Google 的"Chauffeur"项目。2015 年完成了世界上首次全无人驾驶公共道路行驶：一辆没有方向盘和踏板的"萤火虫"车载着盲人 Steve Mahan 穿过了奥斯汀的街区。'
+  },
+  { id:'education', icon:'📚', title:'智能教育', tagline:'Khanmigo：每个学生的 AI 导师',
+    field:'个性化学习', intensity:'med', pct:55,
+    desc:'可汗学院推出的 Khanmigo 基于 GPT-4，为每个学生提供 1 对 1 AI 导师。它不像 ChatGPT 那样直接给答案，而是用苏格拉底式追问引导学生自己思考。覆盖数学、科学、编程、写作等学科。',
+    stats:[{v:'65,000+',l:'Khanmigo试点学生'},{v:'$4/月',l:'学生使用成本'},{v:'40%',l:'数学成绩提升'}],
+    story:'<strong>Sal Khan 的 TED 演讲</strong>：2023 年 Khan 在 TED 展示 Khanmigo 时，全场起立鼓掌。他说："这不是把 AI 放进教室，而是给每个孩子一个私人导师。"'
+  },
+  { id:'coding', icon:'💻', title:'软件开发', tagline:'Cursor · Copilot：AI 写了 40% 的代码',
+    field:'AI 代码助手', intensity:'med-high', pct:78,
+    desc:'GitHub Copilot 已拥有超过 470 万付费用户（截至 2026 年 1 月），每天生成数十亿行代码。Cursor 等 AI-first IDE 让开发者可以用自然语言描述功能并自动生成代码。GitHub 数据显示，在某些语言中超过 40% 的新代码由 Copilot 生成。',
+    stats:[{v:'470万+',l:'Copilot付费用户'},{v:'40%+',l:'新代码AI生成比例'},{v:'55%',l:'开发者效率提升'}],
+    story:'<strong>Cursor 的 4 个 MIT 学生</strong>：创始团队是 4 个 MIT 本科生。他们在 2022 年辍学创业，认为"IDE 的下一个形态不是更多快捷键，而是 AI 原生"。2024 年估值已达 4 亿美元。'
+  },
+  { id:'military', icon:'🛡️', title:'国防军事', tagline:'自主武器：最争议的 AI 应用',
+    field:'自主武器系统', intensity:'low-med', pct:35,
+    desc:'AI 在军事领域的应用引发全球激烈争论。从无人机自主导航到目标识别，AI 技术正被整合到现代武器系统中。联合国已多次召开会议讨论致命自主武器系统(LAWS)的监管，但至今未达成具有约束力的国际条约。',
+    stats:[{v:'0',l:'已签署的LAWS条约'},{v:'70+',l:'国家开发军用AI'},{v:'2023',l:'联合国首次AI军控决议'}],
+    story:'<strong>"停止杀手机器人"运动</strong>：由 180+ 个 NGO 组成的国际联盟持续呼吁禁止致命自主武器。2017 年，116 位 AI/机器人公司创始人（包括 Elon Musk 和 Mustafa Suleyman）联名致信联合国。'
+  }
+];
+
+const gameSets = [
+  { cards: [
+    { text:'AI 医生诊断准确率超过人类医生', hint:'医疗 AI 可以比人更准吗？', truth:true, explain:'✓ 真！2023 年元分析：AI 在多项影像诊断任务中与资深医生持平或超越。' },
+    { text:'AlphaFold 破解了困扰科学界 50 年的蛋白质折叠难题', hint:'诺贝尔奖级别的突破', truth:true, explain:'✓ 真！2020 年 AlphaFold2 在 CASP14 准确率达 92.4 GDT，2024 年获诺贝尔化学奖。' },
+    { text:'Google 以 5 亿美元收购了 DeepMind', hint:'科技史上最贵的 AI 收购之一', truth:true, explain:'✓ 真！2014 年 Google 以约 $500M 收购 DeepMind，当时只有 75 名员工。' },
+    { text:'Midjourney 作品在索斯比拍卖行拍出 $432,500', hint:'AI 艺术能进顶级拍卖行吗？', truth:false, explain:'✗ 假！确实有 AI 艺术品拍出高价，但那幅$432,500的"Edmond de Belamy"是用 GAN 创作的（Obvious 团队），不是 Midjourney。' }
+  ]},
+  { cards: [
+    { text:'AI 从 1.07 亿分子中筛出了能杀死超级细菌的新抗生素', hint:'AI + 药物研发 = 新抗生素？', truth:true, explain:'✓ 真！MIT 团队 2020 年用深度学习从 1.07 亿分子中筛选出 Halicin：一种能杀死多种耐药菌的新型抗生素。' },
+    { text:'AI 系统通过了美国律师资格考试', hint:'AI 能做法律推理吗？', truth:true, explain:'✓ 真！GPT-4 在 2023 年统一律师资格考试中得分超过 90% 的考生。' },
+    { text:'AI 创作的歌曲登顶 Billboard 排行榜', hint:'AI 音乐能拿第一吗？', truth:true, explain:'✓ 真！AI 辅助创作的歌曲已多次登上 Billboard 榜单。2024 年"BBL Drizzy"：一首 AI 生成的 Drake 风格歌曲在社交平台疯传。' },
+    { text:'AI 可以精确预测地震到秒级', hint:'地震预测：地质学家的终极梦想', truth:false, explain:'✗ 假！目前没有任何 AI 能精确预测地震时间。AI 可用于地震早期预警（P波检测后数秒内发布），但"预测"何时何地发生地震仍是科学未解难题。' }
+  ]},
+  { cards: [
+    { text:'Waymo 无人驾驶出租车已在多个城市正式运营', hint:'没有司机的出租车真的存在吗？', truth:true, explain:'✓ 真！Waymo One 在凤凰城、旧金山、洛杉矶 24/7 运营，每周完成 10 万+次付费行程。' },
+    { text:'GitHub Copilot 写了约 40% 的新代码', hint:'你刚写的代码有多少是 AI 写的？', truth:true, explain:'✓ 真！GitHub 官方数据：在某些语言中超过 40% 的新代码由 Copilot 生成。2024 年这一比例还在上升。' },
+    { text:'AI 裁判在世界杯足球赛中执法比赛', hint:'机器人会吹越位哨吗？', truth:false, explain:'✗ 假！虽有半自动越位技术（SAOT）使用 AI 辅助判断，但主裁判仍由人类担任。AI 只是辅助工具，不是"AI 裁判"。' },
+    { text:'AI 翻译系统覆盖 200+ 种语言达到专业级水平', hint:'巴别塔建成了吗？', truth:true, explain:'✓ 真！Google 翻译已覆盖 200+ 种语言，DeepL 和 GPT-4 在多数语言对上接近专业翻译水平。NLLB-200 模型实现 200 种语言高质量互译。' }
+  ]}
+];
+
+// ===== STATE =====
+let currentRound = 0;
+let roundHistory = [];
+let currentShuffled = null;
+let totalCorrect = 0, totalWrong = 0;
+
+// ===== HEATMAP =====
+function initHeatmap() {
+  var grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = industries.map(function(ind, i) {
+    return '<div class="heat-card intensity-' + ind.intensity + '" onclick="openHeatModal(' + i + ')" role="button" tabindex="0">' +
+      '<div class="card-bg"></div>' +
+      '<div class="card-content">' +
+        '<span class="card-icon">' + ind.icon + '</span>' +
+        '<div class="card-title">' + ind.title + '</div>' +
+        '<div class="card-tagline">' + ind.tagline + '</div>' +
+      '</div>' +
+      '<div class="card-meta">' +
+        '<span style="font-size:0.75rem;color:var(--text2)">' + ind.field + '</span>' +
+        '<div class="penetration-bar"><div class="penetration-fill" style="width:' + ind.pct + '%"></div></div>' +
+        '<span class="penetration-label">' + ind.pct + '%</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openHeatModal(idx) {
+  var d = industries[idx];
+  var content = document.getElementById('heatModalContent');
+  content.innerHTML =
+    '<span class="modal-icon">' + d.icon + '</span>' +
+    '<div class="modal-title">' + d.title + '</div>' +
+    '<div class="modal-field">领域：' + d.field + ' · AI 渗透度 <strong style="color:var(--orange)">' + d.pct + '%</strong></div>' +
+    '<div class="modal-desc">' + d.desc + '</div>' +
+    '<div class="modal-stats">' +
+      d.stats.map(function(s) { return '<div class="modal-stat"><div class="stat-val">' + s.v + '</div><div class="stat-label">' + s.l + '</div></div>'; }).join('') +
+    '</div>' +
+    '<div class="modal-story">' + d.story + '</div>';
+  document.getElementById('heatModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHeatModal() {
+  document.getElementById('heatModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('heatModalClose').onclick = closeHeatModal;
+document.getElementById('heatModal').onclick = function(e) {
+  if (e.target === this) closeHeatModal();
+};
+
+// ===== GAME =====
+function initGame() {
+  roundHistory = gameSets.map(function() { return { guessed:[], done:false, foundFalse:false }; });
+  var tabs = document.getElementById('roundTabs');
+  tabs.innerHTML = gameSets.map(function(_, i) {
+    return '<button class="round-tab' + (i===0 ? ' active' : '') + '" onclick="switchRound(' + i + ')">组 ' + (i+1) + '</button>';
+  }).join('');
+  loadRound(0);
+  updateScore();
+  document.getElementById('btnNextGame').onclick = nextRound;
+}
+
+function loadRound(r) {
+  currentRound = r;
+  var state = roundHistory[r];
+  document.getElementById('roundNum').textContent = r + 1;
+
+  document.querySelectorAll('.round-tab').forEach(function(t, i) {
+    t.className = 'round-tab';
+    if (i === r) t.classList.add('active');
+    if (roundHistory[i].done) t.classList.add('done');
+  });
+
+  var cards = gameSets[r].cards.slice();
+  for (var i = cards.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = cards[i]; cards[i] = cards[j]; cards[j] = tmp;
+  }
+  currentShuffled = cards;
+
+  var container = document.getElementById('gameCards');
+  if (state.done) {
+    container.innerHTML = currentShuffled.map(function(c, i) {
+      var wasGuessed = state.guessed.indexOf(i) !== -1;
+      var cls = wasGuessed ? (c.truth ? 'true-reveal' : 'false-reveal') : (c.truth ? 'revealed true' : 'revealed false');
+      var badge = c.truth ? '✓ 真' : '✗ 假';
+      return '<div class="game-card ' + cls + '">' +
+        '<div class="gc-badge">' + badge + '</div>' +
+        '<div class="gc-icon">' + (c.truth ? '✅' : '❌') + '</div>' +
+        '<div class="gc-text">' + c.text + '</div>' +
+        '<div class="gc-hint">' + c.explain + '</div>' +
+      '</div>';
+    }).join('');
+    var fb = document.getElementById('gameFeedback');
+    fb.textContent = state.foundFalse ? '🎉 你找到了假的那张！' : '😅 你没找到假的，再试一次？';
+    fb.className = 'game-feedback ' + (state.foundFalse ? 'correct' : 'wrong');
+    document.getElementById('btnNextGame').disabled = (r >= gameSets.length - 1);
+  } else {
+    container.innerHTML = currentShuffled.map(function(c, i) {
+      return '<div class="game-card" data-idx="' + i + '" data-truth="' + c.truth + '" data-explain="' + c.explain.replace(/"/g,'&quot;') + '" onclick="guess(' + i + ')" role="button" tabindex="0">' +
+        '<div class="gc-badge"></div>' +
+        '<div class="gc-icon">❓</div>' +
+        '<div class="gc-text">' + c.text + '</div>' +
+        '<div class="gc-hint">' + c.hint + '</div>' +
+      '</div>';
+    }).join('');
+    document.getElementById('gameFeedback').textContent = '点击你认为假的卡片！';
+    document.getElementById('gameFeedback').className = 'game-feedback';
+    document.getElementById('btnNextGame').disabled = true;
+  }
+}
+
+function guess(idx) {
+  var state = roundHistory[currentRound];
+  if (state.done) return;
+
+  var cards = document.querySelectorAll('#gameCards .game-card');
+  var card = cards[idx];
+  var guessedIsTrue = card.dataset.truth === 'true';
+
+  state.guessed.push(idx);
+  state.done = true;
+  state.foundFalse = !guessedIsTrue;
+
+  if (state.foundFalse) { totalCorrect++; } else { totalWrong++; }
+  updateScore();
+
+  // Reveal all cards
+  cards.forEach(function(c, i) {
+    var isTrue = c.dataset.truth === 'true';
+    if (i === idx) {
+      c.classList.add(isTrue ? 'wrong-guess' : 'true-reveal', 'revealed');
+      c.querySelector('.gc-badge').textContent = isTrue ? '❌ 猜错' : '✓ 正确';
+      c.querySelector('.gc-icon').textContent = isTrue ? '😰' : '🎯';
+    } else {
+      c.classList.add('revealed', isTrue ? 'true' : 'false');
+      c.querySelector('.gc-badge').textContent = '';
+      c.querySelector('.gc-icon').textContent = isTrue ? '✅' : '❌';
+    }
+    c.querySelector('.gc-hint').textContent = c.dataset.explain || '';
+  });
+
+  var fb = document.getElementById('gameFeedback');
+  fb.textContent = guessedIsTrue ? '❌ 猜错了！那张是真的' : '🎉 答对了！你找到了假的那张！';
+  fb.className = 'game-feedback ' + (guessedIsTrue ? 'wrong' : 'correct');
+  document.getElementById('btnNextGame').disabled = (currentRound >= gameSets.length - 1);
+  document.querySelectorAll('.round-tab')[currentRound].classList.add('done');
+}
+
+function switchRound(r) {
+  loadRound(r);
+}
+
+function nextRound() {
+  if (currentRound < gameSets.length - 1) {
+    loadRound(currentRound + 1);
+  }
+}
+
+function updateScore() {
+  document.getElementById('scoreCorrect').textContent = totalCorrect;
+  document.getElementById('scoreWrong').textContent = totalWrong;
+}
+
+// ===== KEYBOARD =====
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeHeatModal();
+});
+
+// ===== BOOT =====
+initHeatmap();
+initGame();
+</script>
+<!-- ====== REAL-TIME AI Q&A (upgrade3) ====== -->
+<div class="section-title">💬 实时 AI 问答 <span style="font-weight:400;color:var(--text2);font-size:0.82rem;">· 选一个行业，问 DeepSeek 它在怎么改变世界</span></div>
+<div style="max-width:900px;margin:0 auto 28px;padding:0 16px;">
+  <div id="qaChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);overflow:hidden;">
+    <div id="qaMsgs" style="min-height:170px;max-height:330px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:0.88rem;line-height:1.7;"></div>
+    <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;">
+      <input type="password" id="qaKey" placeholder="DeepSeek API Key（sk-...，选填）" style="flex:1;min-width:170px;padding:9px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:var(--text);font-size:0.82rem;font-family:inherit;">
+      <input type="text" id="qaInput" placeholder="问它：AI 怎么改变这个行业？" style="flex:2;min-width:210px;padding:9px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:var(--text);font-size:0.82rem;font-family:inherit;">
+      <button id="qaSend" style="padding:9px 18px;background:#22d3ee;border:none;border-radius:10px;color:#0b0b14;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">发送 ➤</button>
+    </div>
+  </div>
+  <p style="margin:8px 0 0;font-size:0.72rem;color:var(--text-dim);text-align:center;">🔒 Key 只保存在本机浏览器，只发往 DeepSeek 官方接口，刷新即清除。不填 Key 也能玩：AI 会用预置示例答案回复（标注「示例」）。</p>
+</div>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>AI 渗透了哪些行业？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：医疗、金融、教育、交通、农业、娱乐、制造……几乎每个行业都在被 AI 改变，但真新闻和假新闻要分得清。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson6-llm-viz.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">LLM 可视化</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">GPT 的秘密：猜下一个词，猜得足够好</div></a><a href="lesson8-supply-chain.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">产业链金字塔</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">这些产品背后是谁？一粒沙子怎么变成万亿产业？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">Jevons 悖论：效率提高反而让消耗更多。AI 让人类更忙还是更闲？会用 AI 和不会用 AI 的人，差距变大还是变小？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}
+// ===== REAL-TIME AI Q&A (upgrade3) =====
+(function(){
+  var QA_IND = [
+    {id:'medical', icon:'🏥', title:'医疗健康'},
+    {id:'science', icon:'🧬', title:'生命科学'},
+    {id:'creative', icon:'🎨', title:'创意设计'},
+    {id:'autonomous', icon:'🚗', title:'自动驾驶'},
+    {id:'education', icon:'📚', title:'智能教育'},
+    {id:'coding', icon:'💻', title:'软件开发'},
+    {id:'military', icon:'🛡️', title:'国防军事'}
+  ];
+  var Canned = {
+    medical:'🏥 医疗健康：AI 读 CT 片已经能跟资深医生打个平手，新药研发从 10 年缩短到几年。它不会取代医生，而是让医生有时间握病人的手。',
+    science:'🧬 生命科学：AlphaFold 用几年解开了生物学 50 年的难题，预测了 2 亿个蛋白质结构，2024 年拿了诺贝尔化学奖。',
+    creative:'🎨 创意设计：Midjourney 让「会想」比「会画」更重要，几秒出一张图。最大的争议是：这算创作吗？',
+    autonomous:'🚗 自动驾驶：Waymo 已经跑了 2000 万英里无人驾驶。真正的难点不是技术，而是出了事故谁负责。',
+    education:'📚 智能教育：Khanmigo 不直接给答案，用追问让你自己想到答案，像一个 24 小时的私人导师。',
+    coding:'💻 软件开发：GitHub 上超过 40% 的新代码是 AI 写的。程序员从写代码，变成检查 AI 写的代码。',
+    military:'🛡️ 国防军事：自主武器的争论是：要不要让机器自己决定开火？目前全世界还没有约束它的国际条约。'
+  };
+  var sel = 'medical', busy = false;
+
+  function el(id){ return document.getElementById(id); }
+  function addMsg(who, text){
+    var box = el('qaMsgs');
+    var d = document.createElement('div');
+    d.style.cssText = 'max-width:85%;padding:9px 13px;border-radius:12px;font-size:0.86rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;align-self:' + (who==='me'?'flex-end':'flex-start') + ';background:' + (who==='me'?'rgba(34,211,238,0.16)':'rgba(255,255,255,0.07)') + ';border:1px solid ' + (who==='me'?'rgba(34,211,238,0.3)':'rgba(255,255,255,0.1)') + ';';
+    d.textContent = (who==='me'?'🧑 你：':'🤖 DeepSeek：') + text;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+  function renderChips(){
+    var wrap = el('qaChips'); wrap.innerHTML = '';
+    QA_IND.forEach(function(ind){
+      var b = document.createElement('button');
+      b.textContent = ind.icon + ' ' + ind.title;
+      b.style.cssText = 'padding:7px 13px;border-radius:999px;cursor:pointer;font-size:0.8rem;font-family:inherit;border:1px solid ' + (sel===ind.id?'rgba(34,211,238,0.7)':'rgba(255,255,255,0.14)') + ';background:' + (sel===ind.id?'rgba(34,211,238,0.18)':'rgba(255,255,255,0.04)') + ';color:' + (sel===ind.id?'#22d3ee':'#d0d0dc') + ';';
+      b.onclick = function(){
+        sel = ind.id; renderChips();
+        addMsg('ai', '已切换到「' + ind.title + '」。想问它什么？比如：AI 正在怎么改变这个行业？');
+      };
+      wrap.appendChild(b);
+    });
+  }
+  function askDeepSeek(q, key){
+    var ind = QA_IND.filter(function(i){return i.id===sel;})[0];
+    var sys = '你是一个给 14 岁男孩讲 AI 的科普老师。他刚上完「AI 改变世界」这课，现在在问「' + ind.title + '」这个行业。要求：1) 回答 3 到 5 句，口语化，像聊天；2) 说清 AI 在这个行业「以前无解、现在能解」的一件事；3) 可以用比喻，可以带一个表情；4) 不要用编号列表，不要用敬语，不要反问收尾。';
+    return fetch('https://api.deepseek.com/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
+      body: JSON.stringify({model:'deepseek-chat', messages:[{role:'system',content:sys},{role:'user',content:q}], max_tokens:260, temperature:0.9})
+    }).then(function(r){ if(!r.ok) throw new Error('API '+r.status); return r.json(); })
+      .then(function(j){ var c=j.choices&&j.choices[0]&&j.choices[0].message; if(!c||!c.content) throw new Error('empty'); return c.content.trim(); });
+  }
+  function send(){
+    if (busy) return;
+    var inp = el('qaInput'), q = inp.value.trim();
+    if (!q) return;
+    addMsg('me', q); inp.value = '';
+    var key = el('qaKey').value.trim();
+    if (key && key.indexOf('sk-') === 0) {
+      busy = true; el('qaSend').disabled = true; el('qaSend').textContent = '思考中…';
+      askDeepSeek(q, key).then(function(a){ addMsg('ai', a); })
+        .catch(function(){ addMsg('ai', '（API 调用失败，切回示例答案）\n' + Canned[sel]); })
+        .then(function(){ busy = false; el('qaSend').disabled = false; el('qaSend').textContent = '发送 ➤'; });
+    } else {
+      setTimeout(function(){ addMsg('ai', Canned[sel] + '\n\n（示例答案：填 Key 可以问真 AI，问得更深）'); }, 600);
+    }
+  }
+  el('qaSend').onclick = send;
+  el('qaInput').addEventListener('keydown', function(e){ if (e.key === 'Enter') send(); });
+  renderChips();
+  addMsg('ai', '选一个行业（上面点一下），然后问我：AI 正在怎么改变它？');
+})();
+
+</script>
+</body>
+</html>
