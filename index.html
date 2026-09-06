@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<link rel="manifest" href="manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI 夏令营 · 12课交互课堂</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a; --panel:#1a1a2e; --panel2:#16213e;
+  --gold:#f0a500; --gold2:#ffb830; --text:#e0e0e0; --text2:#a0a0b0;
+  --red:#ff4757; --green:#2ed573; --blue:#1e90ff; --purple:#e8795f;
+  --border:#2a2a4a;
+}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  min-height:100vh; overflow-x:hidden;
+}
+.container{ max-width:880px; margin:0 auto; padding:20px 16px 60px; }
+
+/* Hero */
+.hero{
+  text-align:center; padding:48px 20px 32px;
+}
+.hero .icon{ font-size:3.6rem; margin-bottom:8px; }
+.hero h1{
+  font-size:2rem; background:linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:8px;
+}
+.hero p{ color:var(--text2); font-size:1rem; line-height:1.6; max-width:500px; margin:0 auto; }
+
+/* Info chips */
+.chips{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:20px 0 32px; }
+.chip{
+  padding:6px 16px; border-radius:20px; font-size:0.8rem;
+  background:rgba(240,165,0,0.1); border:1px solid rgba(240,165,0,0.25);
+  color:var(--gold);
+}
+
+/* Lesson grid */
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  padding:18px; text-decoration:none; color:var(--text);
+  transition:all 0.2s; position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:6px;
+}
+.card:hover{ border-color:var(--gold); transform:translateY(-2px); box-shadow:0 4px 20px rgba(240,165,0,0.06); }
+.card.done{ border-color:var(--gold); box-shadow:0 0 0 1px rgba(240,165,0,0.35); }
+.card.done .arrow::after{ content:'✓'; color:var(--gold); }
+.prog-track{ width:100%; height:8px; background:rgba(255,255,255,0.08); border-radius:20px; overflow:hidden; margin:14px auto 0; max-width:340px; }
+.prog-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--gold), var(--gold2)); border-radius:20px; transition:width .4s; }
+.prog-txt{ color:var(--text2); font-size:0.8rem; margin-top:6px; }
+.card:active{ transform:scale(0.98); }
+.card .badge{
+  display:inline-block; width:fit-content; padding:2px 10px; border-radius:12px;
+  font-size:0.7rem; font-weight:600;
+}
+.card .badge.concept{ background:rgba(30,144,255,0.15); color:var(--blue); }
+.card .badge.tech{ background:rgba(240,165,0,0.15); color:var(--gold); }
+.card .badge.economy{ background:rgba(168,85,247,0.15); color:var(--purple); }
+.card .badge.political{ background:rgba(255,71,87,0.15); color:var(--red); }
+.card .badge.action{ background:rgba(46,213,115,0.15); color:var(--green); }
+.card h3{ font-size:1rem; display:flex; align-items:center; gap:8px; }
+.card .icon{ font-size:1.4rem; }
+.card .desc{ font-size:0.82rem; color:var(--text2); line-height:1.5; }
+.card .arrow{ position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:1.2rem; color:var(--text3); transition:0.2s; }
+.card:hover .arrow{ right:14px; color:var(--gold); }
+
+/* Responsive */
+@media(max-width:600px){
+  .container{ padding:12px 10px 40px; }
+  .hero{padding:28px 14px 24px;}
+  .hero h1{font-size:1.5rem;}
+  .grid{grid-template-columns:1fr;}
+}
+
+/* Footer */
+.footer{ text-align:center; padding:24px 0; color:var(--text3); font-size:0.78rem; }
+.footer a{ color:var(--gold); text-decoration:none; }
+
+/* Section title */
+.section-title{
+  font-size:0.9rem; color:var(--text2); margin:24px 0 10px;
+  display:flex; align-items:center; gap:8px;
+}
+.section-title span{ font-size:1rem; }
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){ .footer a{padding:5px 2px;display:inline-block;} }
+
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <div class="icon">🤖</div>
+    <h1>AI 夏令营 · 12课</h1>
+    <p>从图灵测试到概念全景图，通过 12 个交互页面看见 AI 的世界</p>
+    <div class="prog-track"><div class="prog-fill" id="progBar"></div></div>
+    <div class="prog-txt" id="progTxt"></div>
+    <div class="chips">
+      <span class="chip">🎮 游戏化</span>
+      <span class="chip">🔬 费曼式</span>
+      <span class="chip">📱 多端适配</span>
+      <span class="chip">🇨🇳 DeepSeek</span>
+      <span class="chip">🎯 11-14岁</span>
+    </div>
+  </div>
+
+  <div class="section-title"><span>🎯</span> 概念 · 理解AI是什么</div>
+  <div class="grid">
+    <a class="card" href="pages/lesson1-turing-judge.html">
+      <div class="badge concept">概念</div>
+      <h3><span class="icon">🎮</span>第1课·图灵裁判</h3>
+      <div class="desc">三场分屏聊天，猜谁是真人，你能赢 AI 吗？</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson2-timeline.html">
+      <div class="badge concept">概念</div>
+      <h3><span class="icon">📜</span>第2课·互动时间线</h3>
+      <div class="desc">2500年AI思想史，30+节点拖拽探索</div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="section-title"><span>⚙️</span> 技术 · 亲手调参数</div>
+  <div class="grid">
+    <a class="card" href="pages/lesson3-gradient-descent.html">
+      <div class="badge tech">技术 ★</div>
+      <h3><span class="icon">⛰️</span>第3课·梯度下降沙盒</h3>
+      <div class="desc">3D地形+3种优化器，蒙眼下山走到谷底</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson4-neural-network.html">
+      <div class="badge tech">技术 ★</div>
+      <h3><span class="icon">✨</span>第4课·神经网络沙盒</h3>
+      <div class="desc">增删神经元，拖拽权重，实时决策边界热力图</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson5-convolution-doodle.html">
+      <div class="badge tech">技术 ★</div>
+      <h3><span class="icon">🖌️</span>第5课·涂鸦识别</h3>
+      <div class="desc">画数字→看4个卷积核实时激活热力图</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson6-llm-viz.html">
+      <div class="badge tech">技术 ★</div>
+      <h3><span class="icon">🤖</span>第6课·LLM可视化</h3>
+      <div class="desc">输入句子→逐token生成+注意力热力图+Top5概率</div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="section-title"><span>🌍</span> 应用 · AI正在改变的世界</div>
+  <div class="grid">
+    <a class="card" href="pages/lesson7-industry-heatmap.html">
+      <div class="badge tech">应用</div>
+      <h3><span class="icon">🔥</span>第7课·行业热力图</h3>
+      <div class="desc">7个行业+真/假猜谜+实时AI问答</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson8-supply-chain.html">
+      <div class="badge economy">经济</div>
+      <h3><span class="icon">🔺</span>第8课·产业链金字塔</h3>
+      <div class="desc">沙子→芯片→模型→App，每层可展开+CEO角色扮演</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson9-investment-machine.html">
+      <div class="badge economy">金融</div>
+      <h3><span class="icon">💰</span>第9课·AI投资时光机</h3>
+      <div class="desc">¥100,000穿越2022→2026，新闻冲击波+财报挑战</div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="section-title"><span>🏛️</span> 社会 · 抉择与未来</div>
+  <div class="grid">
+    <a class="card" href="pages/lesson10-ai-minister.html">
+      <div class="badge political">政治</div>
+      <h3><span class="icon">🏛️</span>第10课·AI部长</h3>
+      <div class="desc">2030 年角色扮演：芯片禁令下你的决策链</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson11-ethics-cards.html">
+      <div class="badge political">哲学</div>
+      <h3><span class="icon">⚖️</span>第11课·伦理困境卡</h3>
+      <div class="desc">6张卡牌翻转，AI伦理困境你敢选吗？</div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="card" href="pages/lesson12-concept-map.html">
+      <div class="badge action">行动</div>
+      <h3><span class="icon">🗺️</span>第12课·概念全景图</h3>
+      <div class="desc">12课64+概念一图览，结课项目+毕业证书</div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div class="footer">
+    <a href="guide.html">🧑‍🏫 家长指南</a> · <a href="knowledge-deck.html">🃏 知识翻牌</a> · <a href="https://github.com/jasoneip01-pixel/ai-course-summer">GitHub</a> · 纯 HTML/CSS/JS · 零依赖
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='ai-course-progress';
+  var done={}; try{ done=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+  var cards=document.querySelectorAll('a.card[href^="pages/lesson"]');
+  var n=cards.length;
+  function paint(){
+    var c=0;
+    cards.forEach(function(a){
+      var m=a.getAttribute('href').match(/lesson(\d+)/);
+      var id=m?m[1]:'';
+      if(done[id]){ c++; a.classList.add('done'); } else { a.classList.remove('done'); }
+    });
+    var bar=document.getElementById('progBar'); var txt=document.getElementById('progTxt');
+    if(bar){ bar.style.width=(n?Math.round(c/n*100):0)+'%'; }
+    if(txt){ txt.textContent='已通关 '+c+' / '+n+' 课'; }
+  }
+  cards.forEach(function(a){
+    a.addEventListener('click',function(){
+      var m=a.getAttribute('href').match(/lesson(\d+)/);
+      var id=m?m[1]:'';
+      if(id){ done[id]=1; try{ localStorage.setItem(KEY,JSON.stringify(done)); }catch(e){} }
+      paint();
+    });
+  });
+  paint();
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
