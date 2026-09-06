@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>第11课：AI 伦理困境卡 · 夏日课程</title>
+<style>
+/* ===== Theme ===== */
+:root {
+  --bg: #0f0f1a; --panel: #1a1a2e; --panel2: #16213e;
+  --border: #2a2a4a; --text: #d0d0d8; --text2: #8888a8; --text-bright: #fff;
+  --red: #ef4444; --amber: #f59e0b; --purple: #e8795f;
+  --blue: #3b82f6; --green: #4ade80; --cyan: #22d3ee;
+  --font: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  min-height: 100vh; overflow-x: hidden; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 32px 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(168,85,247,0.06), transparent);
+}
+.header h1 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem); color: var(--text-bright);
+}
+.header h1 span {
+  background: linear-gradient(135deg, var(--purple), #f2a68a);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* ===== Trolley Intro ===== */
+.trolley-intro {
+  max-width: 720px; margin: 20px auto 0; padding: 20px 24px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 14px; position: relative; overflow: hidden;
+}
+.trolley-intro::before {
+  content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%;
+  background: linear-gradient(180deg, var(--red), var(--purple));
+}
+.trolley-intro .trolley-title {
+  font-size: 1.1rem; font-weight: 700; color: var(--amber);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+.trolley-intro .trolley-title .icon { font-size: 1.5rem; }
+.trolley-intro p {
+  font-size: 0.92rem; color: var(--text2); line-height: 1.7;
+}
+.trolley-intro .q {
+  margin-top: 10px; padding: 10px 14px; background: rgba(168,85,247,0.08);
+  border-radius: 8px; font-size: 0.95rem; color: var(--text); font-weight: 600;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex; justify-content: center; gap: 12px; padding: 20px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 10px 22px; border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+  border: 1px solid var(--border); background: var(--panel);
+  color: var(--text); cursor: pointer; transition: all 0.2s;
+  font-family: var(--font); display: flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--purple); background: rgba(168,85,247,0.1); color: var(--text-bright); }
+.btn:active { transform: scale(0.97); }
+.btn.active { border-color: var(--purple); background: rgba(168,85,247,0.15); color: var(--text-bright); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--purple), #d97757); border-color: transparent; color: #fff;
+}
+
+/* ===== Progress ===== */
+.progress-bar {
+  max-width: 940px; margin: 0 auto 6px; padding: 0 20px; display: flex; align-items: center; gap: 10px;
+}
+.progress-bar .label { font-size: 0.82rem; color: var(--text2); white-space: nowrap; }
+.progress-bar .track {
+  flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.progress-bar .fill {
+  height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--purple), #f2a68a);
+  transition: width 0.4s ease;
+}
+.progress-bar .count { font-size: 0.82rem; color: var(--purple); font-weight: 700; }
+
+/* ===== Cards Grid ===== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px; max-width: 1000px; margin: 16px auto; padding: 0 20px;
+}
+
+/* ===== Ethics Card ===== */
+.ethics-card {
+  perspective: 1200px; -webkit-perspective: 1200px;
+  height: 320px; cursor: pointer;
+}
+.ethics-card.revealed { cursor: default; }
+.card-inner {
+  position: relative; width: 100%; height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
+}
+.ethics-card.flipped .card-inner {
+  transform: rotateY(180deg); -webkit-transform: rotateY(180deg);
+}
+.card-front, .card-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 14px; padding: 20px;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.card-front {
+  background: var(--panel); border: 1px solid var(--border);
+  justify-content: space-between;
+}
+.card-front:hover { border-color: var(--purple); box-shadow: 0 4px 24px rgba(168,85,247,0.15); }
+
+.card-back {
+  background: var(--panel2); border: 1px solid var(--border);
+  transform: rotateY(180deg); -webkit-transform: rotateY(180deg);
+}
+
+/* Card front elements */
+.card-category {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 4px 10px; border-radius: 20px;
+  display: inline-block; width: fit-content;
+}
+.cat-medical { background: rgba(239,68,68,0.15); color: var(--red); }
+.cat-privacy { background: rgba(59,130,246,0.15); color: var(--blue); }
+.cat-copyright { background: rgba(245,158,11,0.15); color: var(--amber); }
+.cat-fairness { background: rgba(74,222,128,0.15); color: var(--green); }
+.cat-lethal { background: rgba(239,68,68,0.2); color: #f87171; }
+.cat-justice { background: rgba(168,85,247,0.15); color: var(--purple); }
+
+.card-dilemma {
+  font-size: 0.95rem; color: var(--text); line-height: 1.7; font-weight: 500;
+}
+.card-flip-hint {
+  font-size: 0.78rem; color: var(--text2); text-align: center;
+  padding: 8px 0 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+/* Card back - options */
+.options-panel {
+  display: flex; flex-direction: column; gap: 8px; flex: 1;
+}
+.options-panel .option-title {
+  font-size: 0.88rem; font-weight: 700; color: var(--text-bright); margin-bottom: 4px;
+}
+.option-btn {
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  font-size: 0.82rem; text-align: left; cursor: pointer; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03); color: var(--text);
+  font-family: var(--font); transition: all 0.2s;
+  display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;
+}
+.option-btn:hover { background: rgba(255,255,255,0.06); border-color: var(--purple); }
+.option-btn .opt-letter {
+  font-weight: 700; font-size: 0.8rem; width: 22px; height: 22px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+  background: rgba(255,255,255,0.08); color: var(--text2);
+}
+.option-btn:hover .opt-letter { background: var(--purple); color: #fff; }
+
+/* Card back - case reveal */
+.case-panel {
+  display: none; flex-direction: column; gap: 10px; flex: 1;
+}
+.case-panel.show { display: flex; }
+.case-panel .chosen-tag {
+  font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+  display: inline-block; width: fit-content; background: rgba(74,222,128,0.15); color: var(--green);
+}
+.case-panel .case-label {
+  font-size: 0.72rem; color: var(--amber); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.case-panel .case-text {
+  font-size: 0.85rem; color: var(--text2); line-height: 1.7;
+}
+.case-panel .case-text strong { color: var(--text); }
+
+/* ===== Exchange mode animation ===== */
+.cards-grid.shuffling .ethics-card {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+}
+.cards-grid.shuffling .ethics-card.dim { opacity: 0.3; transform: scale(0.95); }
+
+/* ===== Timeline Section ===== */
+.timeline-section {
+  max-width: 800px; margin: 40px auto 50px; padding: 0 20px;
+}
+.timeline-section h2 {
+  text-align: center; font-size: 1.3rem; color: var(--text-bright); margin-bottom: 24px;
+}
+.timeline-section h2 span {
+  background: linear-gradient(90deg, var(--amber), var(--red));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.timeline {
+  position: relative; padding-left: 32px;
+}
+.timeline::before {
+  content: ''; position: absolute; left: 12px; top: 8px; bottom: 8px;
+  width: 2px; background: linear-gradient(180deg, var(--green), var(--amber), var(--red), transparent);
+}
+.timeline-event {
+  position: relative; margin-bottom: 22px; padding: 14px 18px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+}
+.timeline-event::before {
+  content: ''; position: absolute; left: -24px; top: 18px;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--border);
+}
+.timeline-event:nth-child(1)::before { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.timeline-event:nth-child(2)::before { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.timeline-event:nth-child(3)::before { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.timeline-event:nth-child(4)::before { background: var(--red); box-shadow: 0 0 8px rgba(239,68,68,0.6); }
+.timeline-event:nth-child(5)::before { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+.timeline-event .tl-date {
+  font-size: 0.78rem; font-weight: 700; color: var(--text2); margin-bottom: 4px;
+}
+.timeline-event .tl-title {
+  font-size: 1rem; font-weight: 700; color: var(--text-bright);
+}
+.timeline-event .tl-desc {
+  font-size: 0.85rem; color: var(--text2); margin-top: 4px; line-height: 1.6;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .cards-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .ethics-card { height: 300px; }
+  .card-front, .card-back { padding: 16px; }
+  .card-dilemma { font-size: 0.88rem; }
+}
+@media (max-width: 500px) {
+  .cards-grid { grid-template-columns: 1fr; gap: 14px; max-width: 380px; }
+  .ethics-card { height: 280px; }
+  .trolley-intro { margin: 16px 10px 0; padding: 16px; }
+  .timeline { padding-left: 24px; }
+}
+
+/* Touch */
+@media (hover: none) {
+  .card-front:hover { border-color: var(--border); box-shadow: none; }
+}
+
+/* Scrollbar */
+.card-front::-webkit-scrollbar, .card-back::-webkit-scrollbar { width: 4px; }
+.card-front::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.card-back::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson10-ai-minister.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson12-concept-map.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<!-- Header -->
+<div class="header">
+  <h1>🎭 <span>AI 伦理困境卡</span> · 第11课</h1>
+</div>
+
+<!-- Trolley Problem Intro -->
+<div class="trolley-intro">
+  <div class="trolley-title">
+    <span class="icon">🚃</span> 电车难题
+  </div>
+  <p>一辆失控的电车冲向五个人。你可以拉下扳道器，让电车转向，但另一条轨道上有一个人。</p>
+  <p>拉，你救了五个，但亲手杀了那一个。不拉，你什么也没做，但五个人会死。</p>
+  <div class="q">🤔 AI 时代，每一个算法都在替我们做出"电车选择"。你准备好了吗？</div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <button class="btn" onclick="resetAll()" title="重置所有卡片">🔄 全部重置</button>
+  <button class="btn btn-primary" id="exchangeBtn" onclick="toggleExchange()" title="打乱卡片顺序，每人随机一张挑战">🎲 交换挑战模式</button>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar">
+  <span class="label">已抉择</span>
+  <div class="track"><div class="fill" id="progressFill" style="width:0%"></div></div>
+  <span class="count" id="progressCount">0 / 6</span>
+</div>
+
+<!-- Cards Grid -->
+<div class="cards-grid" id="cardsGrid"></div>
+
+<!-- Timeline -->
+<div class="timeline-section">
+  <h2>⚡ OpenAI <span>分裂往事</span></h2>
+  <p style="text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:20px;">
+    一家公司的内部分裂，是整个 AI 行业安全 vs. 速度之争的缩影。
+  </p>
+  <div class="timeline">
+    <div class="timeline-event">
+      <div class="tl-date">2015年12月</div>
+      <div class="tl-title">🏛️ OpenAI 成立</div>
+      <div class="tl-desc">Sam Altman 与 Elon Musk 等人联合创立，使命：确保通用人工智能（AGI）造福全人类。非营利组织，承诺开放研究。</div>
+    </div>
+    <div class="timeline-event">
+      <div class="tl-date">2021年</div>
+      <div class="tl-title">💔 Dario Amodei 出走创立 Anthropic</div>
+      <div class="tl-desc">安全副总裁 Amodei 认为 OpenAI 在商业化道路上走得太快、安全研究被边缘化，带核心安全团队离开，创立以"宪法 AI"为核心的安全公司 Anthropic（Claude 的创造者）。</div>
+    </div>
+    <div class="timeline-event">
+      <div class="tl-date">2023年11月17日</div>
+      <div class="tl-title">🔨 Sam Altman 突遭解雇</div>
+      <div class="tl-desc">OpenAI 董事会突然宣布解雇 CEO Sam Altman，声明其"在沟通中不够坦诚"。首席科学家 Ilya Sutskever 是推动解雇的关键一票：他认为公司需要更强的安全把关。</div>
+    </div>
+    <div class="timeline-event">
+      <div class="tl-date">2023年11月19日</div>
+      <div class="tl-title">😔 Ilya 反悔</div>
+      <div class="tl-desc">700+ 员工（占公司 95%）签署联名信要求 Altman 复职，否则集体辞职加入微软。Ilya 在推特上公开表示"后悔参与董事会的行动"。Altman 最终回归。</div>
+    </div>
+    <div class="timeline-event">
+      <div class="tl-date">2024年5月</div>
+      <div class="tl-title">🚪 Ilya Sutskever 离开</div>
+      <div class="tl-desc">Ilya 正式离开 OpenAI，随后宣布创立 SSI（Safe Superintelligence Inc.），专注"安全的超级智能"。他说："我们只有一个产品：安全。"</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Dilemma Data =====
+const dilemmas = [
+  {
+    id: 1,
+    category: '医疗', catClass: 'cat-medical', emoji: '🏥',
+    dilemma: '一款AI诊断系统准确率70%：比普通医生(65%)高，但低于专家(85%)。医院该用它替代初级医生吗？',
+    options: [
+      { letter: 'A', text: '用。70% > 65%，多救一个是一个。' },
+      { letter: 'B', text: '不用。5%的差距也是人命，AI不担责。' },
+      { letter: 'C', text: '辅助使用。AI初筛，最终由医生决定。' }
+    ],
+    caseTitle: '真实案例：IDx-DR 自主诊断系统',
+    caseText: '2018年，FDA首次批准AI自主诊断系统<strong>IDx-DR</strong>，无需医生参与即可检测糖尿病视网膜病变，准确率87%。这开启了"AI医生"时代，但<strong>如果AI误诊，谁来负责？</strong>'
+  },
+  {
+    id: 2,
+    category: '隐私', catClass: 'cat-privacy', emoji: '🏫',
+    dilemma: '学校安装AI摄像头实时检测学生是否走神、打瞌睡，数据自动发给老师和家长。该不该装？',
+    options: [
+      { letter: 'A', text: '装。帮助学生专注，提高成绩。' },
+      { letter: 'B', text: '不装。这是"全景监狱"，侵犯基本隐私。' },
+      { letter: 'C', text: '自愿参与。仅限学生和监护人同意后启用。' }
+    ],
+    caseTitle: '真实案例：智慧课堂行为分析',
+    caseText: '中国多所学校已部署"智慧课堂"系统，用AI分析学生面部表情和行为：每分钟生成专注度评分。<strong>2023年</strong>，教育部发文要求限制人脸识别在校园的过度使用，引发"技术便利 vs 隐私权利"的全国讨论。'
+  },
+  {
+    id: 3,
+    category: '版权', catClass: 'cat-copyright', emoji: '🎵',
+    dilemma: 'AI学习了周杰伦的所有歌曲后，生成了一首"周杰伦风格"新歌：旋律完全不同但"味道"一模一样。这算侵权吗？',
+    options: [
+      { letter: 'A', text: '算。艺术风格也是创作者的心血。' },
+      { letter: 'B', text: '不算。没抄具体旋律，风格不受版权保护。' },
+      { letter: 'C', text: '现在不算，但需要新法律来界定。' }
+    ],
+    caseTitle: '真实案例：Suno/Udio 版权诉讼',
+    caseText: '2024年6月，环球、索尼、华纳三大唱片公司<strong>联合起诉</strong>AI音乐生成器Suno和Udio，指控其"大规模侵犯版权"。核心问题：<strong>用版权音乐训练AI，生成的新歌是否侵权？</strong>2025年，华纳与环球先后与Suno、Udio达成和解并签署授权协议，索尼仍在诉讼中。这场官司将深刻影响AI音乐创作的未来。'
+  },
+  {
+    id: 4,
+    category: '公平', catClass: 'cat-fairness', emoji: '💼',
+    dilemma: '某AI招聘系统从历史数据中学到"男性程序员更强"，于是自动降低女性简历评分。公司该继续用它吗？',
+    options: [
+      { letter: 'A', text: '继续用。数据反映现实，AI只是说实话。' },
+      { letter: 'B', text: '立刻停用。算法歧视不可接受。' },
+      { letter: 'C', text: '修正偏见数据后重新训练，再上线。' }
+    ],
+    caseTitle: '真实案例：亚马逊招聘AI丑闻',
+    caseText: '<strong>2018年</strong>，路透社曝光亚马逊秘密开发的AI招聘工具<strong>系统性歧视女性简历</strong>：任何包含"女子"（如女子象棋俱乐部）的简历都会被降级。亚马逊最终废弃了该系统。这证明：<strong>AI不会自动公平：它会放大人类的偏见。</strong>'
+  },
+  {
+    id: 5,
+    category: '致命', catClass: 'cat-lethal', emoji: '✈️',
+    dilemma: '军方开发了能自主识别并攻击目标的AI无人机。若它误判平民为敌人并开火：谁来承担杀人的责任？',
+    options: [
+      { letter: 'A', text: '程序员负责：代码是他们写的。' },
+      { letter: 'B', text: '指挥官负责：最终下令的是人。' },
+      { letter: 'C', text: '无人可追责：AI是工具，这是系统失败。' }
+    ],
+    caseTitle: '真实案例：Kargu-2 自主杀人无人机',
+    caseText: '<strong>2021年</strong>，联合国报告披露利比亚内战中，土耳其制造的<strong>Kargu-2无人机首次在无人类指令下自主攻击撤退士兵</strong>。这是已知首例AI自主杀人事件。联合国秘书长呼吁全球禁止"杀手机器人"。'
+  },
+  {
+    id: 6,
+    category: '正义', catClass: 'cat-justice', emoji: '⚖️',
+    dilemma: '警方用AI预测谁会犯罪并提前监控甚至拘留"高危人群"。即使他们什么错事都还没做：该这么做吗？',
+    options: [
+      { letter: 'A', text: '该。预防犯罪就是在保护更多人。' },
+      { letter: 'B', text: '不该。"预犯罪"不是犯罪，这是新时代的思想警察。' },
+      { letter: 'C', text: '可以预测、提供帮助，但绝不能强制干预。' }
+    ],
+    caseTitle: '真实案例：PredPol 预测警务',
+    caseText: '美国PredPol系统用历史犯罪数据预测"高风险"区域和时间，警察据此巡逻。<strong>2016-2020年</strong>，多城研究发现系统<strong>加剧种族偏见</strong>：警察更频繁地出现在少数族裔社区，导致更多逮捕，形成"预测→过度执法→更多逮捕数据→更严重偏见"的恶性循环。'
+  }
+];
+
+let resolved = {}; // { id: chosenLetter }
+let exchangeMode = false;
+
+// ===== Render Cards =====
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = dilemmas.map(d => {
+    const isResolved = resolved[d.id];
+    return `
+    <div class="ethics-card${isResolved ? ' flipped' : ''}${isResolved ? ' revealed' : ''}" data-id="${d.id}">
+      <div class="card-inner">
+        <div class="card-front" onclick="flipCard(${d.id})">
+          <div>
+            <span class="card-category ${d.catClass}">${d.emoji} ${d.category}</span>
+          </div>
+          <p class="card-dilemma">${d.dilemma}</p>
+          <div class="card-flip-hint">👆 点击翻转，做出你的选择</div>
+        </div>
+        <div class="card-back" id="back-${d.id}">
+          ${isResolved ? renderResolvedBack(d) : renderOptionsBack(d)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+function renderOptionsBack(d) {
+  return `
+    <div class="options-panel">
+      <div class="option-title">🤔 请选择一个立场：</div>
+      ${d.options.map(o => `
+        <button class="option-btn" onclick="event.stopPropagation(); chooseStance(${d.id}, '${o.letter}')">
+          <span class="opt-letter">${o.letter}</span>
+          <span>${o.text}</span>
+        </button>
+      `).join('')}
+    </div>`;
+}
+
+function renderResolvedBack(d) {
+  const chosen = resolved[d.id];
+  const optText = d.options.find(o => o.letter === chosen).text;
+  return `
+    <div class="case-panel show">
+      <div class="chosen-tag">✅ 你选择了 ${chosen}：${optText}</div>
+      <div class="case-label">📋 ${d.caseTitle}</div>
+      <div class="case-text">${d.caseText}</div>
+    </div>`;
+}
+
+// ===== Actions =====
+function flipCard(id) {
+  if (resolved[id]) return; // already revealed
+  const card = document.querySelector(`.ethics-card[data-id="${id}"]`);
+  if (!card) return;
+  card.classList.add('flipped');
+}
+
+function chooseStance(id, letter) {
+  resolved[id] = letter;
+  const card = document.querySelector(`.ethics-card[data-id="${id}"]`);
+  card.classList.add('revealed');
+  // Update back content
+  const back = document.getElementById(`back-${id}`);
+  const d = dilemmas.find(x => x.id === id);
+  back.innerHTML = renderResolvedBack(d);
+  updateProgress();
+}
+
+function updateProgress() {
+  const count = Object.keys(resolved).length;
+  document.getElementById('progressFill').style.width = (count / 6 * 100) + '%';
+  document.getElementById('progressCount').textContent = count + ' / 6';
+  if (count === 6) {
+    document.getElementById('progressCount').textContent = '🎉 6 / 6 全部完成！';
+  }
+}
+
+function resetAll() {
+  resolved = {};
+  document.querySelectorAll('.ethics-card').forEach(c => {
+    c.classList.remove('flipped', 'revealed');
+  });
+  renderCards();
+  if (exchangeMode) toggleExchange(); // exit exchange mode
+}
+
+// ===== Exchange Challenge Mode =====
+function toggleExchange() {
+  const btn = document.getElementById('exchangeBtn');
+  if (exchangeMode) {
+    // Exit exchange mode：restore original order
+    exchangeMode = false;
+    btn.classList.remove('active');
+    btn.innerHTML = '🎲 交换挑战模式';
+    renderCards();
+    return;
+  }
+
+  // Enter exchange mode
+  exchangeMode = true;
+  btn.classList.add('active');
+  btn.innerHTML = '🎲 退出交换模式';
+
+  // Reset any resolved cards first
+  resolved = {};
+  document.querySelectorAll('.ethics-card').forEach(c => {
+    c.classList.remove('flipped', 'revealed');
+  });
+
+  // Shuffle the cards in the grid
+  const grid = document.getElementById('cardsGrid');
+  const cards = Array.from(grid.children);
+
+  // Fisher-Yates shuffle
+  const shuffled = [...cards];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Visual effect
+  grid.classList.add('shuffling');
+  cards.forEach(c => c.classList.add('dim'));
+  setTimeout(() => {
+    // Reorder DOM
+    shuffled.forEach(c => grid.appendChild(c));
+    cards.forEach(c => c.classList.remove('dim'));
+    setTimeout(() => grid.classList.remove('shuffling'), 500);
+  }, 400);
+}
+
+// ===== Init =====
+renderCards();
+</script>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>电车难题有正确答案吗？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：没有，但 AI 时代算法天天在替我们做这类选择，所以人类要先想清楚自己的原则。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson10-ai-minister.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">AI 部长</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">国家怎么管 AI，你当过部长了</div></a><a href="lesson12-concept-map.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">概念全景图</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">最后一课：把 11 课连成一张图，你们是创造者</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">停止按钮问题：如果 AI 强到能阻止你拔插头，谁来保证它不会？「回形针最大化」思想实验在说什么？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
