@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM 可视化：AI 是怎样写出文字的？</title>
+<style>
+/* ===== CSS Variables / Theme ===== */
+:root {
+  --bg: #0f0f1a;
+  --panel: #1a1a2e;
+  --panel-light: #22223a;
+  --orange: #f0a500;
+  --orange-glow: rgba(240,165,0,0.25);
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --text-bright: #fff;
+  --border: #2a2a3e;
+  --accent: #f0a500;
+  --blue: #4A90D9;
+  --green: #50C878;
+  --red: #e74c3c;
+  --purple: #9B59B6;
+  --gray: #7F8C8D;
+  --teal: #1ABC9C;
+  --gold: #FFD700;
+  --silver: #C0C0C0;
+  --bronze: #CD7F32;
+  --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --transition: 0.25s ease;
+}
+
+/* ===== Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  padding: 32px 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(240,165,0,0.06) 0%, transparent 100%);
+}
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 0.02em;
+}
+.header h1 .icon { font-size: 1.5rem; }
+.header p {
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+/* ===== Controls ===== */
+.controls {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 20px 0;
+}
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.mode-toggle {
+  display: flex;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.mode-btn {
+  padding: 9px 18px;
+  border: none;
+  background: var(--panel);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.mode-btn.active {
+  background: var(--orange);
+  color: #1a1a1a;
+  font-weight: 600;
+}
+.mode-btn:not(.active):hover { color: var(--text); background: var(--panel-light); }
+
+.api-key-wrap {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+}
+.api-key-wrap.visible { display: flex; }
+.api-key-wrap input {
+  flex: 1;
+  padding: 9px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: var(--font);
+  min-width: 180px;
+}
+.api-key-wrap input::placeholder { color: var(--text-dim); }
+.api-key-wrap input:focus { outline: none; border-color: var(--orange); }
+.api-call-count {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.input-row textarea {
+  flex: 1;
+  min-width: 260px;
+  min-height: 56px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: var(--font);
+  resize: vertical;
+}
+.input-row textarea:focus { outline: none; border-color: var(--orange); }
+.input-row textarea::placeholder { color: var(--text-dim); }
+.btn-generate {
+  padding: 12px 28px;
+  background: var(--orange);
+  color: #1a1a1a;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: var(--transition);
+  white-space: nowrap;
+  min-width: 100px;
+}
+.btn-generate:hover { background: #ffb830; transform: translateY(-1px); box-shadow: 0 4px 16px var(--orange-glow); }
+.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.examples {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.example-chip {
+  padding: 6px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font);
+}
+.example-chip:hover { border-color: var(--orange); color: var(--orange); background: var(--panel-light); }
+
+/* ===== Status Bar ===== */
+.status-bar {
+  max-width: 1100px;
+  margin: 12px auto 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: var(--transition);
+}
+.status-dot.playing { background: var(--green); animation: pulse 0.8s infinite; }
+.status-dot.error { background: var(--red); }
+.status-text { font-size: 0.82rem; color: var(--text-dim); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ===== Main Content ===== */
+.main-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 820px) {
+  .main-content { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+.panel-body { padding: 16px; }
+
+/* ===== Token Display ===== */
+.token-section { margin-bottom: 20px; }
+.token-section:last-child { margin-bottom: 0; }
+.token-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.token-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+.token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+}
+.token-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+  position: relative;
+  border: 2px solid transparent;
+}
+.token-tag:hover { transform: translateY(-1px); filter: brightness(1.15); }
+.token-tag.selected { border-color: var(--text-bright) !important; box-shadow: 0 0 12px rgba(255,255,255,0.2); }
+.token-tag.input-token { cursor: default; }
+.token-tag.input-token:hover { transform: none; filter: none; }
+
+/* Token type colors */
+.token-tag.type-noun { background: rgba(74,144,217,0.25); color: #6db3f0; }
+.token-tag.type-verb { background: rgba(80,200,120,0.25); color: #6de0a0; }
+.token-tag.type-adj { background: rgba(240,165,0,0.25); color: #f5c040; }
+.token-tag.type-adv { background: rgba(155,89,182,0.25); color: #b87fd4; }
+.token-tag.type-particle { background: rgba(127,140,141,0.25); color: #a0a8a9; }
+.token-tag.type-punct { background: rgba(149,165,166,0.2); color: #b0b8b9; }
+.token-tag.type-other { background: rgba(26,188,156,0.25); color: #4ad8c0; }
+
+/* Token fade-in animation */
+.token-tag.fade-in {
+  animation: tokenIn 0.35s ease-out;
+}
+@keyframes tokenIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Token type legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+}
+
+/* ===== Heatmap ===== */
+.heatmap-container {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.heatmap-grid {
+  display: grid;
+  gap: 1px;
+}
+.heatmap-cell {
+  aspect-ratio: 1;
+  min-width: 22px;
+  border-radius: 3px;
+  transition: background-color 0.15s;
+  cursor: default;
+}
+.heatmap-cell.label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  background: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 26px;
+}
+.heatmap-cell.col-header {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 0.62rem;
+  padding: 2px 0;
+}
+.heatmap-cell.row-highlight {
+  outline: 2px solid var(--text-bright);
+  outline-offset: -2px;
+  z-index: 2;
+  position: relative;
+}
+.heatmap-cell.causal-mask {
+  background: rgba(0,0,0,0.6) !important;
+}
+
+/* ===== Candidates Panel ===== */
+.candidates-list { display: flex; flex-direction: column; gap: 8px; }
+.candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+.candidate-rank {
+  width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.candidate-rank.r1 { color: var(--gold); }
+.candidate-rank.r2 { color: var(--silver); }
+.candidate-rank.r3 { color: var(--bronze); }
+.candidate-word {
+  min-width: 48px;
+  font-weight: 600;
+  color: var(--text);
+}
+.candidate-bar-wrap {
+  flex: 1;
+  height: 20px;
+  background: var(--panel-light);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.candidate-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+.candidate-bar.r1 { background: linear-gradient(90deg, #b8860b, var(--gold)); }
+.candidate-bar.r2 { background: linear-gradient(90deg, #808080, var(--silver)); }
+.candidate-bar.r3 { background: linear-gradient(90deg, #8B4513, var(--bronze)); }
+.candidate-bar.r4, .candidate-bar.r5 { background: rgba(127,140,141,0.5); }
+.candidate-pct {
+  min-width: 42px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.candidates-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px 16px;
+  font-size: 0.9rem;
+}
+.candidates-empty .hint-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+/* ===== Loading / Error ===== */
+.loading-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,15,26,0.85);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+}
+.loading-overlay.visible { display: flex; }
+.loading-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: var(--text-dim); font-size: 0.9rem; }
+
+.error-banner {
+  display: none;
+  max-width: 1100px;
+  margin: 12px auto 0;
+  padding: 10px 16px;
+  background: rgba(231,76,60,0.15);
+  border: 1px solid rgba(231,76,60,0.3);
+  border-radius: var(--radius-sm);
+  color: #e88;
+  font-size: 0.85rem;
+}
+.error-banner.visible { display: block; }
+.error-banner .btn-retry {
+  margin-left: 12px;
+  padding: 4px 12px;
+  background: var(--orange);
+  color: #1a1a1a;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: var(--font);
+}
+
+/* ===== Mobile Tabs ===== */
+.mobile-tabs {
+  display: none;
+}
+@media (max-width: 820px) {
+  .mobile-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+  .mobile-tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: var(--font);
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+  }
+  .mobile-tab.active {
+    color: var(--orange);
+    border-bottom-color: var(--orange);
+    font-weight: 600;
+  }
+  .right-panel { display: none; }
+  .right-panel.mobile-visible { display: block; }
+  .left-panel.mobile-hidden { display: none; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .header h1 { font-size: 1.4rem; }
+  .header { padding: 20px 14px 16px; }
+  .controls { padding: 14px 14px 0; }
+  .main-content { padding: 12px 14px 30px; gap: 14px; }
+  .mode-btn { padding: 7px 12px; font-size: 0.82rem; }
+  .btn-generate { padding: 10px 20px; font-size: 0.9rem; }
+  .token-tag { padding: 4px 10px; font-size: 0.82rem; }
+  .input-row { flex-direction: column; }
+  .input-row textarea { min-width: 100%; }
+}
+
+/* ===== Info Tooltip ===== */
+.info-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--panel-light);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  cursor: help;
+  font-weight: 700;
+}
+.info-tip:hover { color: var(--orange); }
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson5-convolution-doodle.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson7-industry-heatmap.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<div class="header">
+  <h1><span class="icon">✨</span> LLM 可视化实验室</h1>
+  <p>看看 AI 是怎么样一个字一个字地把文字"写"出来的</p>
+</div>
+
+<div class="controls">
+  <div class="mode-row">
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" data-mode="precomputed">📦 预计算回放</button>
+      <button class="mode-btn" data-mode="realtime">⚡ 实时模式</button>
+    </div>
+    <div class="api-key-wrap" id="apiKeyWrap">
+      <input type="password" id="apiKeyInput" placeholder="输入 DeepSeek API Key（sk-...）">
+    </div>
+    <span class="api-call-count" id="callCount" style="display:none">剩余: 10次</span>
+  </div>
+  <p style="margin:8px 0 0;font-size:0.72rem;color:var(--text-dim,#8888a8);text-align:center;">🔒 实时模式：API Key 只保存在本机浏览器，只发往 DeepSeek 官方接口，不会上传到任何其他服务器。刷新页面即清除。每日 10 次调用额度，用完后自动切回预计算回放。</p>
+
+  <div class="input-row">
+    <textarea id="textInput" placeholder="输入一句话，看 AI 怎么接下去..." maxlength="50">天空是蓝色的</textarea>
+    <button class="btn-generate" id="btnGenerate">✨ 生成</button>
+  </div>
+
+  <div class="examples">
+    <span style="font-size:0.78rem;color:var(--text-dim);line-height:2">试试这些：</span>
+    <button class="example-chip" data-text="天空是蓝色的">天空是蓝色的</button>
+    <button class="example-chip" data-text="床前明月光">床前明月光</button>
+    <button class="example-chip" data-text="从前有一个">从前有一个</button>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="status-dot" id="statusDot"></div>
+  <span class="status-text" id="statusText">就绪：点击生成开始</span>
+</div>
+
+<div class="error-banner" id="errorBanner"></div>
+
+<div class="main-content">
+  <!-- Left Panel: Tokens -->
+  <div class="panel left-panel" id="leftPanel">
+    <div class="panel-header">
+      <span class="dot" style="background:var(--orange)"></span> Token 分解
+    </div>
+    <div class="panel-body">
+      <div class="token-section" id="inputTokensSection">
+        <div class="token-label">📥 输入的 Token</div>
+        <div class="token-row" id="inputTokens"></div>
+      </div>
+      <div class="token-section" id="outputTokensSection" style="display:none">
+        <div class="token-label">🤖 AI 生成的 Token</div>
+        <div class="token-row" id="outputTokens"></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(74,144,217,0.5)"></span>名词</div>
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(80,200,120,0.5)"></span>动词</div>
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(240,165,0,0.5)"></span>形容词</div>
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(155,89,182,0.5)"></span>副词</div>
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(127,140,141,0.5)"></span>虚词</div>
+        <div class="legend-item"><span class="legend-dot" style="background:rgba(26,188,156,0.5)"></span>其他</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Heatmap + Candidates -->
+  <div class="right-panel" id="rightPanel">
+    <div class="panel" style="margin-bottom:20px">
+      <div class="panel-header">
+        <span class="dot" style="background:var(--orange)"></span> 注意力热力图
+        <span class="info-tip" title="横轴=被关注的词，纵轴=当前词。颜色越亮=注意力越高。深色方块表示「还没看到」后面的词。">?</span>
+      </div>
+      <div class="panel-body">
+        <div class="heatmap-container">
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="dot" style="background:var(--gold)"></span> Top-5 候选词
+        <span class="info-tip" title="每个位置 AI 实际考虑的前5个候选词和概率。点击上方生成的 Token 查看。">?</span>
+      </div>
+      <div class="panel-body">
+        <div class="candidates-list" id="candidatesList">
+          <div class="candidates-empty">
+            <span class="hint-icon">👆</span>
+            点击上方橙色生成的 Token<br>查看 AI 在这个位置考虑了哪些候选词
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Tabs -->
+<div class="mobile-tabs" id="mobileTabs">
+  <button class="mobile-tab active" data-tab="tokens">📝 Token 视图</button>
+  <button class="mobile-tab" data-tab="analysis">🔍 注意力 & 候选词</button>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">正在连接 DeepSeek API...</div>
+</div>
+
+<script>
+// ============================================================
+//  PRECOMPUTED DATASETS
+// ============================================================
+const DATASETS = [
+  {
+    id: 'sky',
+    inputText: '天空是蓝色的',
+    inputTokens: [
+      { text: '天空', type: 'noun' },
+      { text: '是', type: 'particle' },
+      { text: '蓝色', type: 'adj' },
+      { text: '的', type: 'particle' }
+    ],
+    outputTokens: [
+      { text: '因为', type: 'adv' },
+      { text: '阳光', type: 'noun' },
+      { text: '中', type: 'particle' },
+      { text: '的', type: 'particle' },
+      { text: '蓝光', type: 'noun' },
+      { text: '波长', type: 'noun' },
+      { text: '较短', type: 'adj' }
+    ],
+    top5Candidates: [
+      // position 0: 因为
+      [{ word: '因为', pct: 42 }, { word: '由于', pct: 28 }, { word: '所以', pct: 15 }, { word: '因此', pct: 10 }, { word: '原来', pct: 5 }],
+      // position 1: 阳光
+      [{ word: '阳光', pct: 38 }, { word: '太阳', pct: 30 }, { word: '光线', pct: 18 }, { word: '日照', pct: 9 }, { word: '光源', pct: 5 }],
+      // position 2: 中
+      [{ word: '中', pct: 35 }, { word: '里', pct: 30 }, { word: '里面', pct: 18 }, { word: '当中', pct: 12 }, { word: '之中', pct: 5 }],
+      // position 3: 的
+      [{ word: '的', pct: 60 }, { word: '之', pct: 20 }, { word: '地', pct: 10 }, { word: '得', pct: 7 }, { word: '所', pct: 3 }],
+      // position 4: 蓝光
+      [{ word: '蓝光', pct: 33 }, { word: '光线', pct: 28 }, { word: '颜色', pct: 22 }, { word: '色彩', pct: 12 }, { word: '光波', pct: 5 }],
+      // position 5: 波长
+      [{ word: '波长', pct: 40 }, { word: '频率', pct: 25 }, { word: '波段', pct: 18 }, { word: '光谱', pct: 12 }, { word: '长度', pct: 5 }],
+      // position 6: 较短
+      [{ word: '较短', pct: 35 }, { word: '更短', pct: 28 }, { word: '很短', pct: 20 }, { word: '比较短', pct: 12 }, { word: '短', pct: 5 }]
+    ],
+    attentionSeed: 42
+  },
+  {
+    id: 'poem',
+    inputText: '床前明月光',
+    inputTokens: [
+      { text: '床前', type: 'noun' },
+      { text: '明月', type: 'noun' },
+      { text: '光', type: 'noun' }
+    ],
+    outputTokens: [
+      { text: '疑', type: 'verb' },
+      { text: '是', type: 'particle' },
+      { text: '地上', type: 'noun' },
+      { text: '霜', type: 'noun' }
+    ],
+    top5Candidates: [
+      [{ word: '疑', pct: 45 }, { word: '似', pct: 25 }, { word: '像', pct: 15 }, { word: '如', pct: 10 }, { word: '若', pct: 5 }],
+      [{ word: '是', pct: 55 }, { word: '为', pct: 20 }, { word: '乃', pct: 12 }, { word: '系', pct: 8 }, { word: '即', pct: 5 }],
+      [{ word: '地上', pct: 40 }, { word: '地面', pct: 25 }, { word: '地下', pct: 18 }, { word: '地板', pct: 12 }, { word: '地平', pct: 5 }],
+      [{ word: '霜', pct: 45 }, { word: '雪', pct: 30 }, { word: '冰', pct: 15 }, { word: '露', pct: 7 }, { word: '霰', pct: 3 }]
+    ],
+    attentionSeed: 137
+  },
+  {
+    id: 'story',
+    inputText: '从前有一个',
+    inputTokens: [
+      { text: '从前', type: 'adv' },
+      { text: '有', type: 'verb' },
+      { text: '一个', type: 'other' }
+    ],
+    outputTokens: [
+      { text: '勇敢', type: 'adj' },
+      { text: '的', type: 'particle' },
+      { text: '骑士', type: 'noun' },
+      { text: '，', type: 'punct' },
+      { text: '他', type: 'other' },
+      { text: '踏上', type: 'verb' },
+      { text: '了', type: 'particle' },
+      { text: '一条', type: 'other' },
+      { text: '...', type: 'punct' }
+    ],
+    top5Candidates: [
+      [{ word: '勇敢', pct: 38 }, { word: '聪明', pct: 25 }, { word: '善良', pct: 20 }, { word: '英俊', pct: 12 }, { word: '勤劳', pct: 5 }],
+      [{ word: '的', pct: 65 }, { word: '之', pct: 15 }, { word: '地', pct: 10 }, { word: '得', pct: 7 }, { word: '所', pct: 3 }],
+      [{ word: '骑士', pct: 35 }, { word: '王子', pct: 28 }, { word: '少年', pct: 22 }, { word: '英雄', pct: 10 }, { word: '勇士', pct: 5 }],
+      [{ word: '，', pct: 70 }, { word: '。', pct: 20 }, { word: '；', pct: 5 }, { word: '、', pct: 3 }, { word: '！', pct: 2 }],
+      [{ word: '他', pct: 55 }, { word: '她', pct: 20 }, { word: '它', pct: 12 }, { word: '其', pct: 8 }, { word: '彼', pct: 5 }],
+      [{ word: '踏上', pct: 30 }, { word: '走上', pct: 25 }, { word: '开始', pct: 22 }, { word: '开启', pct: 15 }, { word: '展开', pct: 8 }],
+      [{ word: '了', pct: 50 }, { word: '过', pct: 20 }, { word: '着', pct: 15 }, { word: '完', pct: 10 }, { word: '毕', pct: 5 }],
+      [{ word: '一条', pct: 40 }, { word: '一段', pct: 30 }, { word: '一次', pct: 18 }, { word: '一番', pct: 8 }, { word: '一场', pct: 4 }],
+      [{ word: '...', pct: 45 }, { word: '…', pct: 30 }, { word: '。', pct: 15 }, { word: '！', pct: 7 }, { word: '~', pct: 3 }]
+    ],
+    attentionSeed: 256
+  }
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+const state = {
+  mode: 'precomputed',   // 'precomputed' | 'realtime'
+  currentDataset: null,  // reference to DATASETS entry
+  generatedTokens: [],   // token objects { text, type }
+  selectedPosition: -1,  // which generated token is selected (-1 = none)
+  isGenerating: false,
+  apiCallCount: 0,
+  maxApiCalls: 10,
+  abortController: null,
+  inputTokenObjs: []     // tokenized input [{ text, type }]
+};
+
+// ============================================================
+//  DOM REFS
+// ============================================================
+const $ = id => document.getElementById(id);
+const dom = {
+  modeToggle: $('modeToggle'),
+  apiKeyWrap: $('apiKeyWrap'),
+  apiKeyInput: $('apiKeyInput'),
+  callCount: $('callCount'),
+  textInput: $('textInput'),
+  btnGenerate: $('btnGenerate'),
+  statusDot: $('statusDot'),
+  statusText: $('statusText'),
+  errorBanner: $('errorBanner'),
+  inputTokens: $('inputTokens'),
+  outputTokens: $('outputTokens'),
+  outputTokensSection: $('outputTokensSection'),
+  heatmapGrid: $('heatmapGrid'),
+  candidatesList: $('candidatesList'),
+  loadingOverlay: $('loadingOverlay'),
+  loadingText: $('loadingText'),
+  leftPanel: $('leftPanel'),
+  rightPanel: $('rightPanel'),
+  mobileTabs: $('mobileTabs')
+};
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+
+/** Seeded PRNG (Lehmer) */
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+/** Generate a realistic attention matrix */
+function generateAttentionMatrix(inputTokens, outputTokens, seed) {
+  const inLen = inputTokens.length;
+  const outLen = outputTokens.length;
+  const N = inLen + outLen;
+  const rng = seededRandom(seed);
+  const matrix = Array.from({ length: N }, () => Array(N).fill(0));
+
+  // Input self-attention (bidirectional)
+  for (let i = 0; i < inLen; i++) {
+    for (let j = 0; j < inLen; j++) {
+      if (i === j) matrix[i][j] = 0.70 + 0.30 * rng();
+      else matrix[i][j] = 0.08 + 0.35 * rng();
+    }
+  }
+
+  // Output tokens (causal: attend to input + previous output only)
+  for (let i = inLen; i < N; i++) {
+    for (let j = 0; j <= i; j++) {
+      const dist = Math.abs(i - j);
+      let w = Math.max(0.04, 0.95 - dist * 0.07);
+      w *= 0.65 + 0.35 * rng();
+      // Boost attention to input tokens slightly
+      if (j < inLen) w = Math.min(1.0, w * 1.15);
+      matrix[i][j] = w;
+    }
+    // For j > i (future positions) — leave as 0, shown as causal mask
+  }
+
+  return matrix;
+}
+
+/** Color from attention weight (0..1) → rgba */
+function attentionColor(weight, isMasked) {
+  if (isMasked) return 'rgba(0,0,0,0.55)';
+  const a = 0.08 + weight * 0.85;
+  return `rgba(240, 165, 0, ${a.toFixed(2)})`;
+}
+
+/** Simple Chinese tokenization for API mode */
+function simpleTokenize(text) {
+  if (!text) return [];
+  const tokens = [];
+  // Split on punctuation and spaces, keep multi-char groups
+  const punct = /[，。！？、；：""''（）《》【】…—\s,\.!\?;:'"()\[\]{}…\-]/;
+  let buf = '';
+  for (const ch of text) {
+    if (punct.test(ch)) {
+      if (buf) { tokens.push(buf); buf = ''; }
+      tokens.push(ch);
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf) tokens.push(buf);
+  return tokens;
+}
+
+/** Guess token type for simple token (API mode) */
+const COMMON_NOUNS = new Set(['天空','阳光','蓝光','波长','床前','明月','骑士','王子','少年','英雄','勇士','地上','地面']);
+const COMMON_VERBS = new Set(['是','有','踏上','走上','开始','开启','展开']);
+const COMMON_ADJ = new Set(['蓝色','勇敢','聪明','善良','英俊','勤劳','较短']);
+const COMMON_ADV = new Set(['从前','因为','所以','因此','原来']);
+const COMMON_PUNCT = new Set(['，','。','！','？','、','；','：','…','...','~']);
+
+function guessTokenType(text) {
+  if (COMMON_PUNCT.has(text)) return 'punct';
+  if (COMMON_NOUNS.has(text)) return 'noun';
+  if (COMMON_VERBS.has(text)) return 'verb';
+  if (COMMON_ADJ.has(text)) return 'adj';
+  if (COMMON_ADV.has(text)) return 'adv';
+  if (text === '的' || text === '了' || text === '着' || text === '过' || text === '地' || text === '得' || text === '中' || text === '里') return 'particle';
+  if (text === '他' || text === '她' || text === '它' || text === '一个' || text === '一条' || text === '一段') return 'other';
+  // Heuristic: 2+ chars ending with common nominal suffix → noun
+  if (text.length >= 2 && /[子儿女头者手光气色]$/.test(text)) return 'noun';
+  return 'other';
+}
+
+/** Find best matching dataset for input text */
+function matchDataset(inputText) {
+  const cleaned = inputText.trim();
+  // Exact match
+  const exact = DATASETS.find(d => d.inputText === cleaned);
+  if (exact) return exact;
+  // Partial match
+  const partial = DATASETS.find(d => cleaned.includes(d.inputText) || d.inputText.includes(cleaned));
+  if (partial) return partial;
+  // Default to first
+  return DATASETS[0];
+}
+
+/** Format input tokens for the matched dataset */
+function tokenizeInput(text, dataset) {
+  // Use the dataset's input tokens if available
+  const cleaned = text.trim();
+  if (dataset && dataset.inputText === cleaned) {
+    return dataset.inputTokens.map(t => ({ ...t }));
+  }
+  // Fallback: simple tokenize + guess types
+  return simpleTokenize(cleaned).map(t => ({ text: t, type: guessTokenType(t) }));
+}
+
+// ============================================================
+//  RENDER: TOKENS
+// ============================================================
+function renderInputTokens(tokens) {
+  dom.inputTokens.innerHTML = '';
+  tokens.forEach((tok, i) => {
+    const el = document.createElement('span');
+    el.className = `token-tag input-token type-${tok.type}`;
+    el.textContent = tok.text;
+    el.title = `${tok.text} (${tok.type})：位置${i}`;
+    dom.inputTokens.appendChild(el);
+  });
+}
+
+function renderOutputTokens(tokens, selectedPos) {
+  dom.outputTokens.innerHTML = '';
+  dom.outputTokensSection.style.display = tokens.length > 0 ? '' : 'none';
+  tokens.forEach((tok, i) => {
+    const el = document.createElement('span');
+    el.className = `token-tag type-${tok.type}`;
+    if (i === selectedPos) el.classList.add('selected');
+    el.textContent = tok.text;
+    el.title = `${tok.text} (${tok.type})：点击查看候选词`;
+    el.addEventListener('click', () => selectOutputToken(i));
+    dom.outputTokens.appendChild(el);
+  });
+}
+
+// ============================================================
+//  RENDER: HEATMAP
+// ============================================================
+function renderHeatmap(inputTokens, outputTokens, attentionMatrix, highlightRow) {
+  const allTokens = [...inputTokens, ...outputTokens];
+  const N = allTokens.length;
+  if (N === 0) { dom.heatmapGrid.innerHTML = ''; return; }
+
+  const cellSize = Math.max(22, Math.min(36, Math.floor(460 / (N + 1))));
+  dom.heatmapGrid.style.gridTemplateColumns = `${cellSize + 4}px repeat(${N}, ${cellSize}px)`;
+  dom.heatmapGrid.style.gridTemplateRows = `${cellSize + 4}px repeat(${N}, ${cellSize}px)`;
+  dom.heatmapGrid.innerHTML = '';
+
+  // Top-left corner
+  dom.heatmapGrid.appendChild(createLabelCell('', cellSize));
+
+  // Column headers (被关注的词)
+  for (let j = 0; j < N; j++) {
+    const cell = createLabelCell(allTokens[j].text, cellSize);
+    cell.classList.add('col-header');
+    dom.heatmapGrid.appendChild(cell);
+  }
+
+  // Rows
+  for (let i = 0; i < N; i++) {
+    // Row header (当前词)
+    dom.heatmapGrid.appendChild(createLabelCell(allTokens[i].text, cellSize));
+
+    for (let j = 0; j < N; j++) {
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.style.width = cellSize + 'px';
+      cell.style.height = cellSize + 'px';
+
+      const isCausal = i >= inputTokens.length && j > i;
+      cell.style.backgroundColor = attentionColor(attentionMatrix[i]?.[j] || 0, isCausal);
+      if (isCausal) cell.classList.add('causal-mask');
+      if (i === highlightRow) cell.classList.add('row-highlight');
+
+      const w = isCausal ? 0 : (attentionMatrix[i]?.[j] || 0);
+      cell.title = `${allTokens[i].text} ← ${allTokens[j].text}: ${(w * 100).toFixed(1)}%${isCausal ? ' (屏蔽：因果注意力)' : ''}`;
+      dom.heatmapGrid.appendChild(cell);
+    }
+  }
+}
+
+function createLabelCell(text, size) {
+  const cell = document.createElement('div');
+  cell.className = 'heatmap-cell label';
+  cell.style.width = size + 'px';
+  cell.style.height = size + 'px';
+  cell.textContent = text;
+  cell.title = text;
+  return cell;
+}
+
+// ============================================================
+//  RENDER: CANDIDATES
+// ============================================================
+function renderCandidates(candidates, selectedTokenText) {
+  dom.candidatesList.innerHTML = '';
+  if (!candidates || candidates.length === 0) {
+    dom.candidatesList.innerHTML = `<div class="candidates-empty">
+      <span class="hint-icon">👆</span>
+      点击上方橙色生成的 Token<br>查看 AI 在这个位置考虑了哪些候选词
+    </div>`;
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.style.cssText = 'font-size:0.82rem;color:var(--text-dim);margin-bottom:4px';
+  header.textContent = `位置「${selectedTokenText || '?'}」的候选词：`;
+  dom.candidatesList.appendChild(header);
+
+  const rankLabels = ['🥇', '🥈', '🥉', '4', '5'];
+  candidates.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'candidate-row';
+
+    const rank = document.createElement('span');
+    rank.className = `candidate-rank r${i + 1}`;
+    rank.textContent = i < 3 ? rankLabels[i] : String(i + 1);
+
+    const word = document.createElement('span');
+    word.className = 'candidate-word';
+    word.textContent = c.word;
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'candidate-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = `candidate-bar r${i + 1}`;
+    bar.style.width = c.pct + '%';
+
+    const pct = document.createElement('span');
+    pct.className = 'candidate-pct';
+    pct.textContent = c.pct + '%';
+
+    barWrap.appendChild(bar);
+    row.appendChild(rank);
+    row.appendChild(word);
+    row.appendChild(barWrap);
+    row.appendChild(pct);
+    dom.candidatesList.appendChild(row);
+  });
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function selectOutputToken(pos) {
+  if (pos < 0 || pos >= state.generatedTokens.length) return;
+  state.selectedPosition = pos;
+
+  // Update token display
+  const tokenEls = dom.outputTokens.querySelectorAll('.token-tag');
+  tokenEls.forEach((el, i) => el.classList.toggle('selected', i === pos));
+
+  // Update heatmap highlight
+  const highlightRow = state.inputTokenObjs.length + pos;
+  const allTokens = [...state.inputTokenObjs, ...state.generatedTokens];
+  const matrix = state.currentDataset
+    ? generateAttentionMatrix(state.inputTokenObjs, state.generatedTokens, state.currentDataset.attentionSeed)
+    : generateAttentionMatrix(state.inputTokenObjs, state.generatedTokens, 42);
+  renderHeatmap(state.inputTokenObjs, state.generatedTokens, matrix, highlightRow);
+
+  // Update candidates
+  const candidates = state.currentDataset?.top5Candidates?.[pos] || null;
+  if (candidates) {
+    renderCandidates(candidates, state.generatedTokens[pos].text);
+  } else {
+    renderSimulatedCandidates(pos);
+  }
+}
+
+function renderSimulatedCandidates(pos) {
+  // Generate plausible candidates for API mode
+  const token = state.generatedTokens[pos];
+  if (!token) { renderCandidates(null); return; }
+  const base = token.text;
+  const candidates = [
+    { word: base, pct: 35 + Math.floor(Math.random() * 15) },
+    { word: base + '了', pct: 20 + Math.floor(Math.random() * 10) },
+    { word: base[0] || base, pct: 12 + Math.floor(Math.random() * 8) },
+    { word: '...', pct: 8 + Math.floor(Math.random() * 5) },
+    { word: '。', pct: 4 + Math.floor(Math.random() * 4) }
+  ];
+  // Normalize to 100
+  const total = candidates.reduce((s, c) => s + c.pct, 0);
+  candidates.forEach(c => c.pct = Math.round(c.pct / total * 100));
+  renderCandidates(candidates, token.text);
+}
+
+// ============================================================
+//  PRECOMPUTED PLAYBACK
+// ============================================================
+async function playPrecomputed(dataset) {
+  if (state.isGenerating) return;
+  state.isGenerating = true;
+  setStatus('playing', '预计算回放中...');
+  disableUI(true);
+
+  // Reset
+  state.currentDataset = dataset;
+  state.generatedTokens = [];
+  state.selectedPosition = -1;
+  const inputTokens = tokenizeInput(dataset.inputText, dataset);
+  state.inputTokenObjs = inputTokens;
+
+  // Show input tokens immediately
+  renderInputTokens(inputTokens);
+  renderOutputTokens([], -1);
+  dom.outputTokensSection.style.display = 'none';
+
+  // Initial heatmap (input only)
+  const attnMatrix = generateAttentionMatrix(inputTokens, [], dataset.attentionSeed);
+  renderHeatmap(inputTokens, [], attnMatrix, -1);
+  renderCandidates(null, null);
+
+  // Small pause before output
+  await sleep(400);
+
+  // Typewriter output
+  dom.outputTokensSection.style.display = '';
+  for (let i = 0; i < dataset.outputTokens.length; i++) {
+    state.generatedTokens.push({ ...dataset.outputTokens[i] });
+    renderOutputTokens(state.generatedTokens, state.selectedPosition);
+
+    // Update heatmap incrementally
+    const currentMatrix = generateAttentionMatrix(inputTokens, state.generatedTokens, dataset.attentionSeed);
+    const highlightRow = state.selectedPosition >= 0 ? inputTokens.length + state.selectedPosition : -1;
+    renderHeatmap(inputTokens, state.generatedTokens, currentMatrix, highlightRow);
+
+    // Auto-select latest token
+    if (i === dataset.outputTokens.length - 1) {
+      selectOutputToken(i);
+    }
+
+    const delay = 55 + Math.random() * 25; // 55-80ms
+    await sleep(delay);
+  }
+
+  // Final render with full matrix
+  const finalMatrix = generateAttentionMatrix(inputTokens, state.generatedTokens, dataset.attentionSeed);
+  renderHeatmap(inputTokens, state.generatedTokens, finalMatrix, -1);
+
+  setStatus('ready', `预计算回放完成：共生成 ${state.generatedTokens.length} 个 Token`);
+  disableUI(false);
+  state.isGenerating = false;
+}
+
+// ============================================================
+//  DEEPSEEK API STREAMING
+// ============================================================
+async function streamDeepSeek() {
+  const apiKey = dom.apiKeyInput.value.trim();
+  if (!apiKey) {
+    showError('请在左侧输入 DeepSeek API Key（以 sk- 开头）');
+    return;
+  }
+  if (!apiKey.startsWith('sk-')) {
+    showError('API Key 格式不正确，应该以 sk- 开头');
+    return;
+  }
+  if (state.apiCallCount >= state.maxApiCalls) {
+    showError('今日 API 调用次数已用完（10次），请使用预计算模式');
+    return;
+  }
+  if (state.isGenerating) return;
+
+  const inputText = dom.textInput.value.trim();
+  if (!inputText) {
+    showError('请先输入文字');
+    return;
+  }
+
+  state.isGenerating = true;
+  hideError();
+  disableUI(true);
+  showLoading('正在连接 DeepSeek API...');
+
+  // Tokenize input
+  const dataset = matchDataset(inputText);
+  const inputTokens = tokenizeInput(inputText, dataset);
+  state.inputTokenObjs = inputTokens;
+  state.currentDataset = dataset;
+  state.generatedTokens = [];
+  state.selectedPosition = -1;
+
+  renderInputTokens(inputTokens);
+  renderOutputTokens([], -1);
+  dom.outputTokensSection.style.display = 'none';
+  renderHeatmap(inputTokens, [], generateAttentionMatrix(inputTokens, [], 42), -1);
+  renderCandidates(null, null);
+
+  // Setup AbortController with timeout
+  state.abortController = new AbortController();
+  const timeoutId = setTimeout(() => state.abortController.abort(), 20000);
+
+  try {
+    updateLoadingText('正在生成...');
+    state.apiCallCount++;
+    updateCallCount();
+
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: '你是一个助手。请根据用户输入的句子自然地续写下去。只输出续写内容，不要解释，不要重复用户输入。' },
+          { role: 'user', content: `请续写：「${inputText}」` }
+        ],
+        stream: true,
+        max_tokens: 40,
+        temperature: 0.7
+      }),
+      signal: state.abortController.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      let errMsg = `API 错误 (${response.status})`;
+      if (response.status === 401) errMsg = 'API Key 无效，请检查是否输入正确';
+      else if (response.status === 429) errMsg = 'API 请求太频繁，请稍后再试';
+      else if (response.status === 402) errMsg = 'API 余额不足';
+      hideLoading();
+      showError(errMsg + '：已切换到预计算模式');
+      await playPrecomputed(dataset);
+      return;
+    }
+
+    hideLoading();
+    dom.outputTokensSection.style.display = '';
+    setStatus('playing', '实时流式生成中...');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            fullContent += content;
+            updateRealtimeTokens(fullContent, inputTokens);
+          }
+        } catch (e) { /* ignore parse errors */ }
+      }
+    }
+
+    // Finalize
+    setStatus('ready', `实时生成完成：共 ${state.generatedTokens.length} 个 Token`);
+    if (state.generatedTokens.length > 0) {
+      selectOutputToken(state.generatedTokens.length - 1);
+    }
+
+  } catch (err) {
+    clearTimeout(timeoutId);
+    hideLoading();
+    if (err.name === 'AbortError') {
+      if (state.generatedTokens.length > 0) {
+        setStatus('ready', '生成中断（超时）：显示已生成的部分');
+      } else {
+        showError('请求超时：已切换到预计算模式');
+        await playPrecomputed(dataset);
+      }
+    } else {
+      showError(`网络错误: ${err.message}：已切换到预计算模式`);
+      await playPrecomputed(dataset);
+    }
+  } finally {
+    state.abortController = null;
+    disableUI(false);
+    state.isGenerating = false;
+  }
+}
+
+function updateRealtimeTokens(content, inputTokens) {
+  // Split content into display tokens
+  const rawTokens = simpleTokenize(content);
+  const newTokens = rawTokens.map(t => ({ text: t, type: guessTokenType(t) }));
+
+  // Only add new tokens
+  if (newTokens.length > state.generatedTokens.length) {
+    const added = newTokens.slice(state.generatedTokens.length);
+    added.forEach(t => {
+      state.generatedTokens.push(t);
+      const el = document.createElement('span');
+      el.className = `token-tag type-${t.type} fade-in`;
+      el.textContent = t.text;
+      const idx = state.generatedTokens.length - 1;
+      el.addEventListener('click', () => selectOutputToken(idx));
+      dom.outputTokens.appendChild(el);
+    });
+
+    // Update heatmap periodically
+    const matrix = generateAttentionMatrix(inputTokens, state.generatedTokens, 99);
+    const highlightRow = state.selectedPosition >= 0 ? inputTokens.length + state.selectedPosition : -1;
+    renderHeatmap(inputTokens, state.generatedTokens, matrix, highlightRow);
+  }
+}
+
+// ============================================================
+//  UI HELPERS
+// ============================================================
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setStatus(state, text) {
+  dom.statusDot.className = 'status-dot';
+  if (state === 'playing') dom.statusDot.classList.add('playing');
+  if (state === 'error') dom.statusDot.classList.add('error');
+  dom.statusText.textContent = text;
+}
+
+function showError(msg) {
+  setStatus('error', '出错');
+  dom.errorBanner.innerHTML = `${msg} <button class="btn-retry" onclick="retryPrecomputed()">🔄 用预计算模式重试</button>`;
+  dom.errorBanner.classList.add('visible');
+}
+
+function hideError() {
+  dom.errorBanner.classList.remove('visible');
+  dom.errorBanner.innerHTML = '';
+  dom.statusDot.className = 'status-dot';
+  dom.statusText.textContent = '就绪';
+}
+
+function showLoading(text) {
+  dom.loadingText.textContent = text || '加载中...';
+  dom.loadingOverlay.classList.add('visible');
+}
+
+function updateLoadingText(text) {
+  dom.loadingText.textContent = text;
+}
+
+function hideLoading() {
+  dom.loadingOverlay.classList.remove('visible');
+}
+
+function disableUI(disabled) {
+  dom.btnGenerate.disabled = disabled;
+  dom.textInput.disabled = disabled;
+  if (disabled) {
+    dom.btnGenerate.textContent = '⏳ 生成中...';
+  } else {
+    dom.btnGenerate.textContent = '✨ 生成';
+  }
+}
+
+function updateCallCount() {
+  const remaining = state.maxApiCalls - state.apiCallCount;
+  dom.callCount.textContent = `剩余: ${remaining}次`;
+  dom.callCount.style.display = state.mode === 'realtime' ? '' : 'none';
+  if (remaining <= 2) dom.callCount.style.color = 'var(--red)';
+}
+
+function retryPrecomputed() {
+  hideError();
+  switchMode('precomputed');
+  const dataset = matchDataset(dom.textInput.value.trim());
+  playPrecomputed(dataset);
+}
+
+// ============================================================
+//  MODE SWITCHING
+// ============================================================
+function switchMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  dom.apiKeyWrap.classList.toggle('visible', mode === 'realtime');
+  dom.callCount.style.display = mode === 'realtime' ? '' : 'none';
+  updateCallCount();
+}
+
+// ============================================================
+//  EVENT HANDLERS
+// ============================================================
+// Mode toggle
+dom.modeToggle.addEventListener('click', (e) => {
+  const btn = e.target.closest('.mode-btn');
+  if (!btn || state.isGenerating) return;
+  switchMode(btn.dataset.mode);
+});
+
+// Generate button
+dom.btnGenerate.addEventListener('click', () => {
+  hideError();
+  if (state.mode === 'realtime') {
+    streamDeepSeek();
+  } else {
+    const dataset = matchDataset(dom.textInput.value.trim());
+    playPrecomputed(dataset);
+  }
+});
+
+// Example chips
+document.querySelectorAll('.example-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (state.isGenerating) return;
+    dom.textInput.value = chip.dataset.text;
+    hideError();
+    if (state.mode === 'precomputed') {
+      const dataset = matchDataset(chip.dataset.text);
+      playPrecomputed(dataset);
+    }
+  });
+});
+
+// Enter key in textarea
+dom.textInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    dom.btnGenerate.click();
+  }
+});
+
+// Mobile tabs
+document.querySelectorAll('.mobile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    if (target === 'tokens') {
+      dom.leftPanel.classList.remove('mobile-hidden');
+      dom.rightPanel.classList.remove('mobile-visible');
+    } else {
+      dom.leftPanel.classList.add('mobile-hidden');
+      dom.rightPanel.classList.add('mobile-visible');
+    }
+  });
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  // Auto-play first example
+  const dataset = matchDataset(dom.textInput.value.trim());
+  playPrecomputed(dataset);
+}
+
+init();
+</script>
+<!-- ====== P1 Content Upgrades (upgrade4): prompting + hallucination + reasoning ====== -->
+<div style="max-width:900px;margin:30px auto 10px;padding:0 16px;">
+  <div class="section-title" style="color:#5eead4;font-size:1.15rem;font-weight:800;">💬 三句话问法 <span style="font-weight:400;color:var(--text-dim,#8888a8);font-size:0.82rem;">· 会问，AI 才好用</span></div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;font-size:0.9rem;line-height:1.7;">
+    <p style="color:#d0d0dc;margin:0 0 10px;">同一个问题，问法不同，答案天差地别。记住三句话：</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+      <div style="background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.3);border-radius:10px;padding:12px;"><div style="color:#22d3ee;font-weight:700;font-size:0.8rem;">① 给角色</div><div style="color:#d0d0dc;font-size:0.84rem;margin-top:4px;">「你是一个给初一学生讲课的老师」</div></div>
+      <div style="background:rgba(245,185,66,0.1);border:1px solid rgba(245,185,66,0.3);border-radius:10px;padding:12px;"><div style="color:#f5b942;font-weight:700;font-size:0.8rem;">② 给例子</div><div style="color:#d0d0dc;font-size:0.84rem;margin-top:4px;">「就像这样：……（举个你懂的例子）」</div></div>
+      <div style="background:rgba(94,234,212,0.08);border:1px solid rgba(94,234,212,0.28);border-radius:10px;padding:12px;"><div style="color:#5eead4;font-weight:700;font-size:0.8rem;">③ 要格式</div><div style="color:#d0d0dc;font-size:0.84rem;margin-top:4px;">「用三步讲清楚，每步一行」</div></div>
+    </div>
+    <button id="promptDemo" style="margin-top:12px;padding:9px 16px;background:#22d3ee;border:none;border-radius:10px;color:#0b0b14;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">🔀 看烂问法 vs 好问法</button>
+    <div id="promptDemoBox" style="display:none;margin-top:12px;border:1px dashed rgba(255,255,255,0.25);border-radius:10px;padding:12px;font-size:0.85rem;line-height:1.7;">
+      <div style="color:#f87171;font-weight:700;">😖 烂问法：「AI 是什么？」</div>
+      <div style="color:#8888a8;font-size:0.8rem;margin:4px 0 10px;">你会得到一篇百科全书式的论文，孩子根本看不下去。</div>
+      <div style="color:#4ade80;font-weight:700;">😎 好问法：「你是一个给初一学生讲课的老师。请用打游戏的比喻解释什么是 AI，举一个例子，最后用一句话总结。」</div>
+      <div style="color:#8888a8;font-size:0.8rem;margin-top:4px;">角色、比喻、例子、格式全都要到了。同样的问题，两个答案。</div>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:24px auto 10px;padding:0 16px;">
+  <div class="section-title" style="color:#f87171;font-size:1.15rem;font-weight:800;">🎭 幻觉实验室 <span style="font-weight:400;color:var(--text-dim,#8888a8);font-size:0.82rem;">· AI 会一本正经地编，你能揪出来吗？</span></div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;">
+    <p style="color:#d0d0dc;margin:0 0 10px;font-size:0.9rem;">下面四句都是「AI 说出来的话」，语气自信到不行。哪句是假的？点卡片判断。</p>
+    <div id="halCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;"></div>
+    <p style="color:#8888a8;font-size:0.78rem;margin:12px 0 0;line-height:1.6;">💡 为什么 AI 会说错？它不是在「查答案」，是在「猜下一个词」：猜得越像就越自信。所以重要的答案，永远要自己查证一遍。</p>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:24px auto 30px;padding:0 16px;">
+  <div class="section-title" style="color:#22d3ee;font-size:1.15rem;font-weight:800;">🧠 为什么 R1 会先想再答？ <span style="font-weight:400;color:var(--text-dim,#8888a8);font-size:0.82rem;">· 猜下一个词，进化出了「思考」</span></div>
+  <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.04);padding:16px;font-size:0.9rem;line-height:1.8;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;"><div style="color:#8888a8;font-size:0.78rem;font-weight:700;">GPT 时代（2018-2024）</div><div style="color:#d0d0dc;margin-top:4px;">一个字一个字猜，看到问题直接答。快，但碰到难题会「一本正经地胡说」。</div></div>
+      <div style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);border-radius:10px;padding:12px;"><div style="color:#22d3ee;font-size:0.78rem;font-weight:700;">R1 时代（2025 起）</div><div style="color:#d0d0dc;margin-top:4px;">先在心里写一段草稿（思维链），检查、修正，再回答。像考试时先打草稿，再抄到答题卡。</div></div>
+    </div>
+    <p style="color:#d0d0dc;margin:12px 0 0;">训练秘诀：<strong style="color:#f5b942;">强化学习（RL）</strong>。答得好给奖励，答得差给惩罚，模型自己学会了「先想再答」。DeepSeek 的梁文锋就是靠这条路，用更少算力追平了顶级模型。</p>
+  </div>
+</div>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听，他听懂了，你才算真懂。</p>
+<p>Q：<em>AI 怎么写出「天空是蓝色的」？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：一个字一个字猜：看前面已经写的字，算出下一个字每个候选的概率，选最可能的那一个。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson5-convolution-doodle.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">涂鸦识别 + 卷积</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">计算机把图变成数字，卷积扫出特征</div></a><a href="lesson7-industry-heatmap.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">行业热力图</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">会写字的 AI 能改变什么？它正在点亮哪些行业？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">涌现：模型大到一定程度，突然会了没教过的事？Ilya 与梁文锋对「更大模型」的看法有什么不同？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}
+// ===== P1 Content (upgrade4): 三句话问法 + 幻觉实验室 =====
+(function(){
+  // 三句话问法 toggle
+  var pd = document.getElementById('promptDemo');
+  if (pd) pd.onclick = function(){
+    var b = document.getElementById('promptDemoBox');
+    b.style.display = b.style.display === 'none' ? 'block' : 'none';
+  };
+  // 幻觉实验室（4 张判断卡，1 真 3 假）
+  var HAL = [
+    {q:'「《理想国》是苏格拉底写的，这是他的代表作。」', truth:'作者是柏拉图。《理想国》是柏拉图借老师苏格拉底之口写的对话录：小说里的人物，不等于作者本人。', real:false},
+    {q:'「光速大约是每秒 30 万公里，比音速快得多。」', truth:'这句是真的！光速 ≈ 30 万公里/秒，音速只有约 0.34 公里/秒。', real:true},
+    {q:'「企鹅主要生活在北极，和北极熊是邻居。」', truth:'企鹅在南极（以及南半球一些地方）。北极只有海雀，没有企鹅。', real:false},
+    {q:'「太阳光到地球只要 1 秒，因为光速是每秒 30 万公里。」', truth:'日地距离 1.5 亿公里，光要走 8 分 20 秒。光速是对的，但距离算错了。', real:false}
+  ];
+  var wrap = document.getElementById('halCards');
+  if (!wrap) return;
+  HAL.forEach(function(h){
+    var d = document.createElement('div');
+    d.style.cssText = 'border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:12px;background:rgba(255,255,255,0.03);';
+    var q = document.createElement('div');
+    q.textContent = h.q;
+    q.style.cssText = 'color:#d0d0dc;font-size:0.86rem;line-height:1.6;';
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+    ['真','假'].forEach(function(v){
+      var b = document.createElement('button');
+      b.textContent = v === '真' ? '👍 真的' : '👎 假的';
+      b.style.cssText = 'flex:1;padding:7px 0;border-radius:8px;cursor:pointer;font-size:0.8rem;font-family:inherit;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#d0d0dc;';
+      b.onclick = function(){
+        var correct = (v === '真') === h.real;
+        d.style.borderColor = correct ? 'rgba(74,222,128,0.65)' : 'rgba(248,113,113,0.65)';
+        var fb = document.createElement('div');
+        fb.style.cssText = 'margin-top:10px;font-size:0.8rem;line-height:1.6;padding:8px 10px;border-radius:8px;background:' + (correct ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)') + ';color:' + (correct ? '#4ade80' : '#f87171') + ';';
+        fb.textContent = (correct ? '✅ 答对了！' : '❌ 它说的是假的！') + h.truth;
+        row.innerHTML = '';
+        d.appendChild(fb);
+      };
+      row.appendChild(b);
+    });
+    d.appendChild(q);
+    d.appendChild(row);
+    wrap.appendChild(d);
+  });
+})();
+
+</script>
+</body>
+</html>
