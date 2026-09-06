@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>AI思想史时间线 · AI 夏令营 第2课</title>
+<style>
+/* ===========================================================
+   AI 2500年思想史互动时间线
+   目标受众：牧之(14岁) + 牧童(11岁) | 电脑+iPad
+   ========================================================= */
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:#0f0f1a;
+  --panel:#1a1a2e;
+  --panel2:#16213e;
+  --gold:#f0a500;
+  --gold2:#ffb830;
+  --text:#e0e0e0;
+  --text2:#a0a0b0;
+  --text3:#6a6a7e;
+  --red:#ff4757;
+  --green:#2ed573;
+  --blue:#5b8cbc;
+  --purple:#9b59b6;
+  --pink:#e84393;
+  --cyan:#00d2d3;
+  --border:#2a2a3e;
+  --radius:12px;
+  --radius-sm:8px;
+  --header-h:56px;
+  /* timeline track */
+  --track-h:240px;
+  --node-size:16px;
+  --node-key-size:28px;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  height:100vh; height:100dvh;
+  width:100vw; overflow-x:hidden;
+  display:flex;flex-direction:column;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  user-select:none;
+}
+
+/* Header */
+#header{
+  height:var(--header-h);
+  min-height:var(--header-h);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  z-index:100;
+}
+#header .logo{font-size:18px;font-weight:800;color:var(--gold);white-space:nowrap}
+#header .logo span{color:var(--text2);font-weight:400;font-size:13px;margin-left:6px}
+#header .subtitle{font-size:12px;color:var(--text3)}
+
+/* legend pills */
+#legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px}
+.legend-item{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;opacity:0.7;transition:opacity .2s}
+.legend-item:hover,.legend-item.on{opacity:1}
+
+/* Main Timeline Container */
+#main{
+  position:relative;flex:1;overflow:hidden;
+  cursor:grab;
+}
+#main:active{cursor:grabbing}
+#main.dragging{cursor:grabbing}
+
+/* scrollbar */
+#main::-webkit-scrollbar{height:6px}
+#main::-webkit-scrollbar-track{background:transparent}
+#main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Track overlay */
+#track-container{
+  position:absolute;top:0;left:0;
+  height:100%;width:fit-content;
+  min-width:100%;
+  transform-origin:top left;
+  will-change:transform;
+}
+#track-line{
+  position:absolute;
+  left:80px;right:80px;
+  top:calc(50% - 2px);
+  height:3px;
+  background:linear-gradient(90deg, var(--border), var(--text3) 20%, var(--text2) 50%, var(--text3) 80%, var(--border));
+  border-radius:2px;
+  z-index:1;
+}
+#track-line::after{
+  content:'';
+  position:absolute;top:-6px;left:0;right:0;height:15px;
+}
+
+/* Year markers */
+.year-marker{
+  position:absolute;top:calc(50% - 48px);
+  transform:translateX(-50%);
+  font-size:11px;color:var(--text3);
+  white-space:nowrap;z-index:2;
+}
+.year-marker.century{color:var(--text2);font-size:13px;font-weight:600}
+.year-marker::before{
+  content:'';
+  display:block;width:1px;height:8px;
+  background:var(--border);
+  margin:0 auto 4px;
+}
+.year-marker.century::before{height:14px;background:var(--text3)}
+
+/* Era bands */
+.era-band{
+  position:absolute;top:0;height:100%;
+  z-index:0;pointer-events:none;
+  opacity:0.06;
+}
+.era-band.winter1{background:var(--red);opacity:0.1}
+.era-band.winter2{background:var(--red);opacity:0.08}
+
+/* Node */
+.node{
+  position:absolute;
+  z-index:10;
+  cursor:pointer;
+  transform:translate(-50%,-50%);
+}
+.node-dot{
+  width:var(--node-size);height:var(--node-size);
+  border-radius:50%;
+  background:var(--blue);
+  border:2px solid var(--bg);
+  box-shadow:0 0 6px rgba(91,140,188,0.4);
+  transition:transform .25s,box-shadow .25s;
+  margin:0 auto;
+}
+.node:hover .node-dot,
+.node:active .node-dot{transform:scale(1.6);box-shadow:0 0 14px rgba(91,140,188,0.7)}
+.node.selected .node-dot{transform:scale(1.5);box-shadow:0 0 16px currentColor}
+
+/* key node (bigger, brighter) */
+.node.key .node-dot{
+  width:var(--node-key-size);height:var(--node-key-size);
+  border-width:3px;
+  box-shadow:0 0 12px currentColor;
+}
+.node.key:hover .node-dot{transform:scale(1.3)}
+.node.key.selected .node-dot{transform:scale(1.4)}
+
+/* Node colors by epoch */
+.node.pre-modern .node-dot{background:#6a6a7e;box-shadow:none}
+.node.foundation .node-dot{background:var(--blue)}
+.node.golden .node-dot{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.node.winter .node-dot{background:var(--red)}
+.node.renaissance .node-dot{background:var(--green)}
+.node.deep-learning .node-dot{background:var(--cyan)}
+.node.llm-era .node-dot{background:var(--purple)}
+
+/* business nodes */
+.node.biz .node-dot{background:var(--gold);border-color:rgba(240,165,0,0.4)}
+
+/* Label below node */
+.node-label{
+  position:absolute;top:calc(var(--node-key-size) + 6px);
+  left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--text2);
+  white-space:nowrap;text-align:center;
+  max-width:80px;overflow:hidden;text-overflow:ellipsis;
+  transition:color .2s;
+  pointer-events:none;
+}
+.node.key .node-label{font-size:12px;color:var(--text);font-weight:600}
+.node:hover .node-label{color:var(--text)}
+.node.biz .node-label{color:var(--gold2);font-size:10px}
+
+/* Icons on key nodes */
+.node-icon{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:12px;pointer-events:none;z-index:1;line-height:1;
+}
+.node.key .node-icon{font-size:14px}
+.node.pre-modern .node-dot{width:12px;height:12px}
+
+/* Easter egg prompt */
+.easter-egg{
+  position:absolute;
+  top:calc(var(--node-key-size) * -1.6);
+  left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--gold2);
+  background:var(--panel2);
+  padding:3px 8px;border-radius:10px;
+  white-space:nowrap;opacity:0;
+  pointer-events:none;
+  transition:opacity .3s;
+  z-index:20;
+}
+.easter-egg.show{opacity:1}
+.easter-egg::after{
+  content:'';
+  position:absolute;bottom:-4px;left:50%;
+  transform:translateX(-50%);
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:5px solid var(--panel2);
+}
+
+/* Detail Card */
+#detail-card{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%);
+  width:min(480px,calc(100vw - 32px));
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px 24px;
+  z-index:200;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s,transform .3s;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+#detail-card.show{
+  opacity:1;pointer-events:auto;
+  transform:translateX(-50%) translateY(0);
+}
+#detail-card:not(.show){transform:translateX(-50%) translateY(12px)}
+
+#detail-card .close-btn{
+  position:absolute;top:8px;right:12px;
+  background:none;border:none;color:var(--text3);
+  font-size:20px;cursor:pointer;padding:4px 8px;
+  line-height:1;
+}
+#detail-card .close-btn:hover{color:var(--text)}
+#detail-card .d-year{
+  font-size:24px;font-weight:800;color:var(--gold);
+  margin-bottom:4px;
+}
+#detail-card .d-title{
+  font-size:16px;font-weight:600;color:var(--text);
+  margin-bottom:8px;
+}
+#detail-card .d-desc{
+  font-size:13px;color:var(--text2);line-height:1.7;
+  margin-bottom:10px;
+}
+#detail-card .d-people{
+  font-size:12px;color:var(--text3);
+  display:flex;align-items:center;gap:6px;
+}
+#detail-card .d-people::before{content:'👤'}
+#detail-card .d-tag{
+  display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;
+  margin-right:6px;margin-bottom:4px;
+  background:var(--panel2);color:var(--text3);
+}
+
+/* Controls */
+#controls{
+  position:absolute;bottom:20px;right:20px;
+  display:flex;flex-direction:column;gap:8px;
+  z-index:50;
+}
+.ctrl-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--text2);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,color .2s;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.ctrl-btn:hover{background:var(--panel2);color:var(--text)}
+.ctrl-btn:active{transform:scale(0.95)}
+
+/* Tooltip for navigation hint */
+#nav-hint{
+  position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  font-size:13px;color:var(--text2);opacity:0.9;
+  background:var(--panel);padding:8px 18px;border-radius:20px;
+  z-index:20;pointer-events:none;
+  transition:opacity .6s;
+  border:1px solid var(--border);
+}
+#nav-hint.fade{opacity:0}
+
+/* Easter egg toast */
+#toast{
+  position:fixed;top:calc(var(--header-h) + 16px);left:50%;
+  transform:translateX(-50%);
+  background:var(--panel);border:1px solid var(--gold);
+  color:var(--gold);font-size:13px;
+  padding:10px 20px;border-radius:var(--radius-sm);
+  z-index:300;opacity:0;pointer-events:none;
+  transition:opacity .4s,transform .4s;
+  box-shadow:0 4px 16px rgba(240,165,0,0.2);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast:not(.show){transform:translateX(-50%) translateY(-8px)}
+
+/* ── Mobile vertical mode (under 768px) ── */
+@media(max-width:767px){
+  #track-line{display:none}
+  .year-marker{display:none}
+  .era-band{display:none}
+  .node{position:relative;left:auto!important;top:auto!important;
+    transform:none!important;display:flex;align-items:center;
+    width:100%;padding:6px 0;border-bottom:1px solid var(--border);
+  }
+  .node-dot{flex-shrink:0;margin:0 12px 0 16px}
+  .node-label{position:static;transform:none;font-size:14px!important;
+    max-width:none;text-align:left;color:var(--text)!important;
+  }
+  .node.key .node-label{font-size:16px!important}
+  .node-icon{position:static;transform:none;margin-right:8px;font-size:18px!important}
+  .easter-egg{display:none}
+  #track-container{
+    position:static;width:100%;height:auto;min-width:auto;
+    transform:none!important;overflow-y:auto;padding:12px 0 100px;
+  }
+  #main{overflow-y:auto;overflow-x:hidden;cursor:default}
+  #main:active{cursor:default}
+  #controls{display:none}
+  #nav-hint{display:none}
+  #detail-card{bottom:12px;width:calc(100vw - 24px)}
+  #header{flex-wrap:wrap;height:auto;min-height:var(--header-h);padding:10px 16px;gap:8px}
+  #legend{width:100%}
+}
+
+/* Year label on track */
+.node.year-label{
+  pointer-events:none;z-index:2;
+}
+.node.year-label .node-dot{
+  width:2px;height:10px;border-radius:0;
+  background:var(--text3);border:none;box-shadow:none;
+}
+.node.year-label .node-label{
+  top:14px;font-size:9px;color:var(--text3);
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson1-turing-judge.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson3-gradient-descent.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<!-- Header -->
+<div id="header">
+  <div class="logo">🧠 AI思想史<span>第2课 · 互动时间线</span></div>
+  <div id="legend">
+    <span class="legend-item on" data-filter="all"><span class="legend-dot" style="background:var(--gold)"></span>全部</span>
+    <span class="legend-item" data-filter="foundation"><span class="legend-dot" style="background:var(--blue)"></span>理论奠基</span>
+    <span class="legend-item" data-filter="winter"><span class="legend-dot" style="background:var(--red)"></span>AI寒冬</span>
+    <span class="legend-item" data-filter="deep"><span class="legend-dot" style="background:var(--cyan)"></span>深度学习</span>
+    <span class="legend-item" data-filter="biz"><span class="legend-dot" style="background:var(--gold)"></span>商业暗线</span>
+  </div>
+</div>
+
+<!-- Main Timeline -->
+<div id="main">
+  <div id="track-container">
+    <div id="track-line"></div>
+    <!-- nodes injected by JS -->
+  </div>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <button class="ctrl-btn" id="btn-zoom-in" title="放大">＋</button>
+  <button class="ctrl-btn" id="btn-zoom-out" title="缩小">－</button>
+  <button class="ctrl-btn" id="btn-reset" title="重置视图">⟳</button>
+</div>
+
+<!-- Navigation hint -->
+<div id="nav-hint">← 拖拽浏览 &nbsp;|&nbsp; 滚轮缩放 &nbsp;|&nbsp; 点击节点看详情 →</div>
+
+<!-- Detail Card -->
+<div id="detail-card">
+  <button class="close-btn" id="close-detail">✕</button>
+  <div class="d-year" id="d-year"></div>
+  <div class="d-title" id="d-title"></div>
+  <div><span id="d-tags"></span></div>
+  <div class="d-desc" id="d-desc"></div>
+  <div class="d-people" id="d-people"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ===========================================================
+   Timeline Data
+   ========================================================= */
+const EVENTS = [
+  // ── Pre-Modern Era ──
+  {id:'aristotle', year:-384, title:'亚里士多德 · 三段论', desc:'首次将推理形式化为"若A则B，若B则C，故若A则C"。这是人类把思维当成机械过程来研究的起点：2300年后，计算机学的基石"逻辑演算"仍立在这块基石上。', people:'亚里士多德 (Aristotle)', epoch:'pre-modern', pos:'top'},
+  {id:'yan-shi', year:-900, title:'偃师造人', desc:'《列子·汤问》记载：巧匠偃师献给周穆王一个人偶，能歌善舞，甚至朝王妃"瞬目挑逗"。穆王勃然大怒，偃师将人偶拆开：不过是皮革、木头与胶漆。这可能是人类最早的人造"智能体"想象。', people:'偃师 (传说)', epoch:'pre-modern', pos:'top'},
+  {id:'talos', year:-400, title:'塔罗斯 · 青铜巨人', desc:'希腊神话中，工匠之神赫淮斯托斯铸造了青铜巨人塔罗斯，守护克里特岛。每天绕岛三圈，投石击退入侵者：人类在2500年前就梦想造一个自动执行任务的机器。', people:'赫淮斯托斯 (神话)', epoch:'pre-modern', pos:'bottom'},
+  {id:'al-jazari', year:1206, title:'Al-Jazari · 可编程人偶乐团', desc:'阿拉伯工程师 Al-Jazari 在《精巧机械装置之书》中描述了一组可编程的自动人偶乐手：用凸轮和杠杆控制鼓手和乐师演奏不同节奏。这是人类最早的"可编程"自动机，比欧洲早了500年。', people:'Ismail Al-Jazari', epoch:'pre-modern', pos:'bottom'},
+  {id:'pascal', year:1642, title:'Pascal · 机械计算器', desc:'19岁的帕斯卡为减轻税务官父亲的计算负担，发明了"Pascaline"：用齿轮和棘轮完成加减计算。这是第一台实用的机械计算器，证明了"思维的一部分可以被机器替代"。', people:'布莱兹·帕斯卡 (Blaise Pascal)', epoch:'foundation', pos:'bottom'},
+  {id:'ada', year:1843, title:'Ada Lovelace · 第一个程序', desc:'拜伦勋爵的女儿 Ada 为巴贝奇的分析机编写了世界上第一个算法（伯努利数计算），并预言："这机器将来不仅能算数，还能作曲。"她是人类历史上第一个程序员，也是第一个看到"计算机能创造"的人。', people:'Ada Lovelace', epoch:'foundation', pos:'top'},
+
+  // ── Foundation Era ──
+  {id:'turing-machine', year:1936, title:'图灵机 · 计算的本质', desc:'24岁的图灵发表《论可计算数》，提出了"图灵机"这个抽象计算模型：一条无限长的纸带、一个读写头、一组有限规则。所有现代计算机都是图灵机的物理实现。这篇论文同时在数学上证明了：有些问题永远无法被算法解决（停机问题）。', people:'艾伦·图灵 (Alan Turing)', epoch:'foundation', pos:'top'},
+  {id:'mcculloch-pitts', year:1943, title:'McCulloch-Pitts 神经元模型', desc:'神经科学家 McCulloch 和数学家 Pitts 证明：用简单的阈值逻辑单元（"神经元"）网络，理论上可以计算任何可计算函数。这是人工神经网络的数学起点：大脑的"逻辑"可以用电路模拟。', people:'Warren McCulloch & Walter Pitts', epoch:'foundation', pos:'bottom'},
+  {id:'turing-test', year:1950, title:'图灵测试 · 机器能思考吗？', desc:'图灵在《Computing Machinery and Intelligence》中提出了一个优雅的裁判游戏：如果一台机器在对话中让人分不清它是人还是机器，我们就必须承认它在"思考"。这篇论文定义了此后70年的AI核心愿景：也是你刚玩过的"图灵裁判"游戏。', people:'艾伦·图灵 (Alan Turing)', epoch:'foundation', pos:'top'},
+
+  // ── Golden Age ──
+  {id:'dartmouth', year:1956, title:'达特茅斯会议 · AI诞生', desc:'麦卡锡、明斯基、香农和罗切斯特在达特茅斯学院举办了一个暑期研讨会，预算仅$7500。他们提出一个乐观的假设："学习的每个方面，原则上都能被精确描述：所以我们能让机器模拟它。"会议正式命名了这个领域：Artificial Intelligence。后面的一切，都从这$7500开始。', people:'John McCarthy, Marvin Minsky, Claude Shannon, Nathaniel Rochester', epoch:'golden', pos:'top', key:true, icon:'⭐', easter:'→ GPT-4一次训练电费 ≈ $1亿'},
+  {id:'perceptron', year:1958, title:'感知机 · 会学习的机器', desc:'Rosenblatt 在康奈尔大学建造了"Mark I 感知机"：一台用400个光电管和可调电位器构成的机器，能"学习"识别简单的字母。这是第一个真正运行的人工神经网络。《纽约时报》预言："它终将能走路、说话、看清、写字、自我复制并意识到自己的存在。"', people:'Frank Rosenblatt', epoch:'golden', pos:'bottom'},
+
+  // ── First AI Winter ──
+  {id:'minsky-critic', year:1969, title:'Minsky 批判 · 感知机死刑', desc:'明斯基和 Papert 出版《Perceptrons》，用严格的数学证明：单层感知机连"异或"(XOR)这种最简单的非线性问题都解决不了。这本书直接冻结了神经网络研究长达十多年的资金。讽刺的是，多层网络可以解决XOR，但当时没人知道怎么训练它。', people:'Marvin Minsky & Seymour Papert', epoch:'winter', pos:'top', key:true, icon:'❄️'},
+  {id:'ai-winter1', year:1974, title:'1974-1980 · 第一个 AI 寒冬', desc:'英国 Lighthill 报告判定AI研究"在任何领域都未能产生它承诺的重大影响"。DARPA 砍掉了几乎所有AI拨款。研究者不得不把论文标题里的"AI"改成"模式识别"或"自动推理"才能拿到经费。整个领域陷入了近十年的冬天。', people:'James Lighthill / DARPA', epoch:'winter', pos:'bottom'},
+
+  // ── Revival ──
+  {id:'backprop', year:1986, title:'反向传播 · 神经网络的引擎', desc:'Rumelhart、Hinton 和 Williams 重新发现了反向传播算法：现在神经网络通过"从输出层逐层往回传递误差"来学习。这篇论文打破了Minsky批判的诅咒：多层网络终于可以高效训练了。它至今仍是所有深度学习的核心引擎。', people:'David Rumelhart, Geoffrey Hinton, Ronald Williams', epoch:'renaissance', pos:'top'},
+
+  // ── Second AI Winter ──
+  {id:'ai-winter2', year:1987, title:'1987-1993 · 第二个 AI 寒冬', desc:'Lisp机器市场崩溃，专家系统维护成本爆炸，日本"第五代计算机"项目失败。又一次资金断流：AI研究再次被贴上了"无法兑现承诺"的标签。但这一次的火种没有熄灭：Hinton等人在加拿大悄悄地继续研究神经网络。', people:'业界 / DARPA', epoch:'winter', pos:'bottom'},
+
+  // ── Late 90s / Early 00s ──
+  {id:'deepblue', year:1997, title:'Deep Blue · 机器赢了', desc:'IBM 的 Deep Blue 在国际象棋中击败了世界冠军卡斯帕罗夫。第二天报纸头条是"人类被自己的造物击败了"。但 Deep Blue 用的是暴力搜索+棋谱数据库：它并不"学"国际象棋，靠的是暴力搜索加棋谱数据库，也不像今天的AI。然而这场比赛让全世界第一次认真思考：机器的"智力"可以打败我们。', people:'IBM / Garry Kasparov', epoch:'renaissance', pos:'top'},
+
+  // ── Deep Learning Era ──
+  {id:'hinton-2006', year:2006, title:'Hinton · 深度信念网络', desc:'Hinton 发表《A Fast Learning Algorithm for Deep Belief Nets》，证明了逐层预训练可以让深层神经网络有效学习。这篇论文点燃了"深度学习革命"：在经历了近20年的边缘化之后，神经网络正式回到了舞台中央。', people:'Geoffrey Hinton', epoch:'deep-learning', pos:'top'},
+  {id:'alexnet', year:2012, title:'AlexNet · GPU颠覆', desc:'Hinton的学生 Alex Krizhevsky 用两块 NVIDIA GTX 580 游戏显卡训练了一个卷积神经网络，参加 ImageNet 图像识别比赛：错误率比第二名低了近 11 个百分点。前一秒大家还用着几十年的计算机视觉方法，后一秒全世界改投深度学习。GPU的威力，从这一刻开始改变一切。', people:'Alex Krizhevsky, Ilya Sutskever, Geoffrey Hinton', epoch:'deep-learning', pos:'bottom', key:true, icon:'🔥'},
+
+  // ── Business lines ──
+  {id:'deepmind-buy', year:2014, title:'Google收购DeepMind · $500M', desc:'Larry Page 以约5亿美元买下一家伦敦的小型AI公司 DeepMind。交易条件包括一个独立伦理委员会：AI安全作为收购条款，这在商业史上尚属首次。', people:'Larry Page, Demis Hassabis', epoch:'deep-learning', pos:'top', biz:true},
+  {id:'gan', year:2014, title:'GAN · 机器学会创造', desc:'Goodfellow 在酒吧喝完啤酒后想到了一个主意：让两个神经网络互相对抗：一个伪造，一个鉴别。几千次博弈后，伪造者变得足够"以假乱真"。GAN的诞生让AI从"识别"进入了"创造"时代。', people:'Ian Goodfellow', epoch:'deep-learning', pos:'bottom'},
+  {id:'openai', year:2015, title:'OpenAI 成立 · Musk入场', desc:'Elon Musk 联手 Sam Altman、Greg Brockman 等人，宣布成立 OpenAI：一家"非营利"AI研究公司，使命是确保通用人工智能(AGI)造福全人类。初始承诺投资$10亿。讽刺的是，几年后 Musk 因控制权争议离开，OpenAI 转向了营利模式。', people:'Elon Musk, Sam Altman, Greg Brockman, Ilya Sutskever', epoch:'deep-learning', pos:'top', biz:true},
+  {id:'alphago', year:2016, title:'AlphaGo · 围棋攻陷', desc:'DeepMind 的 AlphaGo 以 4:1 击败围棋世界冠军李世石。全场唯一赢的那局被李世石称为"神之一手"。这场对决在亚洲吸引了超过2亿观众：AI"创造力"的话题，从实验室走进了每个人的客厅。', people:'Demis Hassabis / 李世石', epoch:'deep-learning', pos:'bottom'},
+
+  // ── Transformer & LLM Era ──
+  {id:'transformer', year:2017, title:'Transformer · 「Attention Is All You Need」', desc:'Google 的 8 位研究者发表了一篇改变一切的论文。他们提出了一种全新的架构：不用循环，不用卷积，只靠"注意力"(Attention)机制。"Attention Is All You Need"这个标题本身就成了预言：ChatGPT，GPT-4，所有你今天能聊天的AI，都是Transformer的子孙。', people:'Ashish Vaswani 等 (Google Brain)', epoch:'llm-era', pos:'top', key:true, icon:'💡'},
+  {id:'gpt1', year:2018, title:'GPT-1 · 语言模型萌芽', desc:'OpenAI 发布了第一代 GPT：1.17亿参数，用7000本书训练。它写得磕磕巴巴，但展示了一个惊人的方向："给我上文，我续写下文"这个简单的任务，居然让模型学会了语法、常识和简单的推理。', people:'Alec Radford 等 (OpenAI)', epoch:'llm-era', pos:'bottom'},
+  {id:'anthropic', year:2021, title:'Anthropic 成立 · AI安全出走', desc:'担心 OpenAI 商业化的方向，Dario Amodei 等人离开 OpenAI 创立 Anthropic。"安全第一"的宪法AI理念：让AI先读一份"宪法"原则再回答。这成为AI安全领域最重要的独立力量。', people:'Dario Amodei, Daniela Amodei', epoch:'llm-era', pos:'top', biz:true},
+  {id:'gpt3', year:2020, title:'GPT-3 · 涌现的力量', desc:'1750亿参数。OpenAI 发现了一个惊人的现象：当模型大到一定程度时，突然出现了训练时没教过的能力：翻译、算术、写代码。这些"涌现能力"没有写在任何一行代码里，是从数据中"自己长出来的"。', people:'OpenAI', epoch:'llm-era', pos:'bottom'},
+  {id:'chatgpt', year:2022, title:'ChatGPT · 一亿用户', desc:'2022年11月30日发布，两个月内突破1亿月活用户：人类历史上增长最快的产品。一个聊天界面，改变了世界对AI的认知。AI不再是实验室里的论文成果，变成了每个人手机里的助理。', people:'OpenAI', epoch:'llm-era', pos:'top'},
+  {id:'deepseek', year:2023, title:'DeepSeek · 中国力量', desc:'DeepSeek 用极低的预算训练出接近顶尖水平的开源模型，震惊全世界。证明"AI的门槛"正在急剧降低：不再只有硅谷巨头能玩。训练成本$560万 vs GPT-4的$1亿：不靠烧钱，靠算法创新。', people:'DeepSeek / 幻方量化', epoch:'llm-era', pos:'bottom'},
+  {id:'xai', year:2023, title:'xAI 成立 · Musk再入场', desc:'Elon Musk 宣布成立 xAI，声称目标是"理解宇宙的真正本质"。一周内招募了来自 DeepMind、OpenAI、Google 和微软的顶级研究者。AI竞赛进入了多极化时代。', people:'Elon Musk', epoch:'llm-era', pos:'top', biz:true},
+  {id:'gpt4o', year:2024, title:'GPT-4o · 多模态原生', desc:'OpenAI 发布 GPT-4o："o"代表"omni"（全能的）。文本、图像、音频，在这个模型里不再是"拼接"的，而是"原生"理解。AI第一次真正有了"眼睛"和"耳朵"：它看见你桌上的咖啡杯，听到你声音里的犹豫。', people:'OpenAI', epoch:'llm-era', pos:'bottom'},
+  {id:'deepseek-r1', year:2025, title:'DeepSeek R1 · 元月冲击', desc:'2025年1月，DeepSeek 发布推理模型 R1。训练成本仅$600万，推理能力接近当时最顶尖的 GPT-4。消息一出，NVIDIA 单日市值蒸发数千亿："算力=一切"的叙事被彻底动摇。中国AI从追赶者变成了颠覆者。', people:'DeepSeek (梁文锋)', epoch:'llm-era', pos:'top'},
+  {id:'gpt5', year:2025, title:'GPT-5 · 推理时代', desc:'2025年2月，OpenAI 发布 GPT-5，整合了 o3 推理技术。模型不再是"猜下一个词"，而是"想好了再回答"：它会写提纲、自我检查、修正错误。多项基准测试远超 GPT-4。推理成本的革命让"每次回答都思考"成为可能。', people:'OpenAI (Sam Altman)', epoch:'llm-era', pos:'bottom'},
+  {id:'claude4', year:2025, title:'Claude 4 · 安全先行', desc:'Anthropic 2025年发布 Claude 4 系列。Opus 4 在编程基准 SWE-bench 上取得里程碑式突破。同时 Claude 也经历了罕见的快速迭代：从 4 Opus 到 4.6 Opus，每代都重构了能力天花板。Dario Amodei 的"宪法AI"路线证明：安全和能力可以兼得。', people:'Anthropic (Dario Amodei)', epoch:'llm-era', pos:'top', biz:true},
+  {id:'gemini2', year:2025, title:'Gemini 2 · Google反击', desc:'Google 发布 Gemini 2 系列，展示了强大的多模态推理和百万token上下文窗口。DeepMind 的 Hassabis 路线："解决智能，用它解决一切"：开始在主战场与 OpenAI 正面交锋。', people:'Google DeepMind (Demis Hassabis)', epoch:'llm-era', pos:'bottom'},
+  {id:'deepseek-v4', year:2026, title:'DeepSeek V4 · 中国效率', desc:'2026年4月，DeepSeek 发布 V4 系列。V4-Pro 拥有1.6万亿总参数（490亿激活参数），V4-Flash仅2840亿总参数。用更少GPU、更少电费达到一线水平：效率革命的顶峰。全世界开始认真思考："如果不需要那么多算力就能做到最好，AI产业链怎么办？"', people:'DeepSeek (梁文锋)', epoch:'llm-era', pos:'top', key:true, icon:'⚡'},
+  {id:'claude46', year:2026, title:'Claude 4.6 · 编程天花板', desc:'Anthropic 的 Claude Opus 4.6 以 80.8% 的 SWE-Bench Verified 得分登顶，超过 GPT-5.4 的 77.2%。100万token上下文窗口让开发者能把整个代码库"装入"一次对话。编程从此不再是研发人员的专属技能："用对话写生产级软件"的时代来了。', people:'Anthropic', epoch:'llm-era', pos:'bottom'},
+];
+
+/* ===========================================================
+   State
+   ========================================================= */
+let scale = 1;
+let offsetX = 0;
+let isDragging = false, dragStartX=0, dragStartOff=0;
+const SCALE_MIN=0.4, SCALE_MAX=3.0;
+let selectedNode = null;
+const isMobile = window.innerWidth < 768;
+
+/* ===========================================================
+   Build Timeline
+   ========================================================= */
+const track = document.getElementById('track-container');
+const detailCard = document.getElementById('detail-card');
+const toast = document.getElementById('toast');
+const navHint = document.getElementById('nav-hint');
+
+const years = EVENTS.map(e=>e.year);
+const minY = Math.min(...years);
+const maxY = Math.max(...years);
+const span = maxY - minY;
+const TRACK_PADDING = 120;
+
+// Segmented scale: compressed ancient, stretched modern
+const SEGMENTS = [
+  {from:minY, to:1800, pxPerYear:isMobile?1.2:3},
+  {from:1800, to:1950, pxPerYear:isMobile?2:6},
+  {from:1950, to:2000, pxPerYear:isMobile?4:12},
+  {from:2000, to:maxY, pxPerYear:isMobile?6:18},
+];
+// Precompute cumulative offsets
+let segOffsets = [0];
+for(let i=0;i<SEGMENTS.length;i++){
+  const s=SEGMENTS[i];
+  segOffsets.push(segOffsets[i]+(s.to-s.from)*s.pxPerYear);
+}
+function yearToX(y){
+  let x=TRACK_PADDING;
+  for(let i=0;i<SEGMENTS.length;i++){
+    const s=SEGMENTS[i];
+    if(y <= s.to && y >= s.from){
+      x = TRACK_PADDING + segOffsets[i] + (y - s.from) * s.pxPerYear;
+      return x;
+    }
+  }
+  if(y > maxY){
+    x = TRACK_PADDING + segOffsets[segOffsets.length-1] + (y - maxY) * SEGMENTS[SEGMENTS.length-1].pxPerYear;
+  }
+  return x;
+}
+const totalW = yearToX(maxY) + TRACK_PADDING;
+
+// Set track width
+track.style.width = totalW + 'px';
+
+// Add era bands
+function addEraBand(start, end, cls){
+  const band = document.createElement('div');
+  band.className = 'era-band ' + cls;
+  band.style.left = yearToX(typeof start==='string'?parseInt(start):start) + 'px';
+  band.style.width = (yearToX(typeof end==='string'?parseInt(end):end) - yearToX(typeof start==='string'?parseInt(start):start)) + 'px';
+  track.appendChild(band);
+}
+addEraBand(1973, 1980, 'winter1');
+addEraBand(1987, 1993, 'winter2');
+
+// Add year markers (every 100 years for centuries, sparser in ancient era)
+const markerYears = [];
+for(let y = -500; y <= 2000; y += 500) markerYears.push(y); // ancient: every 500y
+for(let y = 1800; y <= maxY; y += 50) if(!markerYears.includes(y)) markerYears.push(y);
+markerYears.sort((a,b)=>a-b);
+markerYears.forEach(y => {
+  const m = document.createElement('div');
+  const isCentury = (y%100===0 && y%500!==0) || y%500===0;
+  m.className = 'year-marker' + (isCentury?' century':'');
+  m.style.left = yearToX(y) + 'px';
+  m.textContent = y < 0 ? '前'+Math.abs(y) : y+'' + (isCentury?'年':'');
+  track.appendChild(m);
+});
+
+// Add nodes
+EVENTS.forEach(evt => {
+  const x = yearToX(evt.year);
+  const topPos = evt.pos === 'top' ? 'calc(50% - 60px)' : 'calc(50% + 60px)';
+
+  const node = document.createElement('div');
+  node.className = 'node ' + evt.epoch + (evt.key?' key':'') + (evt.biz?' biz':'');
+  node.setAttribute('data-id', evt.id);
+  node.setAttribute('data-epoch', evt.epoch);
+  if(evt.biz) node.setAttribute('data-biz','true');
+  node.style.left = x + 'px';
+  node.style.top = topPos;
+
+  let innerHTML = '<div class="node-dot"></div>';
+  if(evt.icon){
+    innerHTML += '<span class="node-icon">'+evt.icon+'</span>';
+  }
+  if(evt.easter){
+    innerHTML += '<div class="easter-egg" data-id="'+evt.id+'">'+evt.easter+'</div>';
+  }
+  innerHTML += '<div class="node-label">'+evt.title.split('·')[0].trim()+(evt.biz?' 💰':'')+'</div>';
+
+  node.innerHTML = innerHTML;
+  node.addEventListener('click', (e) => { e.stopPropagation(); showDetail(evt, node); });
+  track.appendChild(node);
+});
+
+// Initial track position: start viewing from ~1850
+offsetX = -(yearToX(1850) - 80);
+applyTransform();
+
+/* ===========================================================
+   Interaction
+   ========================================================= */
+const main = document.getElementById('main');
+
+// Drag
+main.addEventListener('pointerdown', (e) => {
+  if(e.target.closest('.node')) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartOff = offsetX;
+  main.classList.add('dragging');
+  navHint.classList.add('fade');
+});
+
+window.addEventListener('pointermove', (e) => {
+  if(!isDragging) return;
+  offsetX = dragStartOff + (e.clientX - dragStartX);
+  applyTransform();
+});
+
+window.addEventListener('pointerup', () => {
+  if(isDragging){ isDragging = false; main.classList.remove('dragging'); }
+});
+
+// Wheel zoom
+main.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = main.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const oldScale = scale;
+
+  let newScale = scale * (1 - e.deltaY * 0.002);
+  newScale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, newScale));
+
+  // Zoom toward cursor
+  const worldX = (mouseX - offsetX) / oldScale;
+  offsetX = mouseX - worldX * newScale;
+
+  scale = newScale;
+  applyTransform();
+}, {passive:false});
+
+// Zoom buttons
+document.getElementById('btn-zoom-in').addEventListener('click', ()=>{
+  scale = Math.min(SCALE_MAX, scale*1.3);
+  applyTransform();
+});
+document.getElementById('btn-zoom-out').addEventListener('click', ()=>{
+  scale = Math.max(SCALE_MIN, scale/1.3);
+  applyTransform();
+});
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  scale = 1;
+  offsetX = -(yearToX(1850) - 80);
+  applyTransform();
+});
+
+// Touch pinch zoom
+let pinchDist0 = 0, scaleAtPinch = 1;
+main.addEventListener('touchstart', (e) => {
+  if(e.touches.length === 2){
+    pinchDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                             e.touches[0].clientY - e.touches[1].clientY);
+    scaleAtPinch = scale;
+  }
+}, {passive:true});
+main.addEventListener('touchmove', (e) => {
+  if(e.touches.length === 2 && pinchDist0 > 0){
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY);
+    scale = Math.max(SCALE_MIN, Math.min(SCALE_MAX, scaleAtPinch * dist / pinchDist0));
+    applyTransform();
+  }
+}, {passive:true});
+main.addEventListener('touchend', ()=>{ pinchDist0 = 0; });
+
+function applyTransform(){
+  track.style.transform = `translate(${offsetX}px, 0) scale(${scale})`;
+}
+
+// Detail card
+function showDetail(evt, nodeEl){
+  selectedNode = nodeEl;
+  document.querySelectorAll('.node.selected').forEach(n=>n.classList.remove('selected'));
+  nodeEl.classList.add('selected');
+
+  document.getElementById('d-year').textContent = evt.year < 0 ? '公元前 '+Math.abs(evt.year) : evt.year+'年';
+  document.getElementById('d-title').textContent = evt.title;
+  document.getElementById('d-desc').textContent = evt.desc;
+  document.getElementById('d-people').textContent = evt.people;
+
+  const tagsEl = document.getElementById('d-tags');
+  const tags = [];
+  if(evt.key) tags.push('<span class="d-tag" style="background:rgba(240,165,0,0.15);color:var(--gold)">⚡ 关键节点</span>');
+  if(evt.biz) tags.push('<span class="d-tag" style="background:rgba(240,165,0,0.15);color:var(--gold)">💰 商业暗线</span>');
+  if(evt.epoch==='winter') tags.push('<span class="d-tag" style="background:rgba(255,71,87,0.15);color:var(--red)">❄️ AI寒冬</span>');
+  tagsEl.innerHTML = tags.join('');
+
+  detailCard.classList.add('show');
+
+  // Easter egg for Dartmouth
+  if(evt.id === 'dartmouth'){
+    setTimeout(()=>showToast('🤯 GPT-4 一次训练总成本 ≈ $1亿（其中电费约 $1,000 万）：是达特茅斯预算($7500)的 1.3万倍！'), 400);
+  }
+
+  // Highlight easter egg bubble
+  if(evt.easter){
+    const egg = nodeEl.querySelector('.easter-egg');
+    if(egg){ egg.classList.add('show');
+      setTimeout(()=>egg.classList.remove('show'), 3000);
+    }
+  }
+}
+
+document.getElementById('close-detail').addEventListener('click', ()=>{
+  detailCard.classList.remove('show');
+  if(selectedNode){ selectedNode.classList.remove('selected'); selectedNode = null; }
+});
+
+// Click on background to deselect
+main.addEventListener('click', (e) => {
+  if(e.target.closest('.node') || e.target.closest('#detail-card') || e.target.closest('.ctrl-btn')) return;
+  if(!isDragging){
+    detailCard.classList.remove('show');
+    if(selectedNode){ selectedNode.classList.remove('selected'); selectedNode = null; }
+  }
+});
+
+// Toast
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>toast.classList.remove('show'), 3500);
+}
+
+// Legend filter
+let activeFilter = 'all';
+document.querySelectorAll('.legend-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.legend-item').forEach(i=>i.classList.remove('on'));
+    item.classList.add('on');
+    activeFilter = item.getAttribute('data-filter');
+
+    document.querySelectorAll('.node').forEach(n => {
+      if(activeFilter === 'all'){
+        n.style.opacity = '1'; n.style.pointerEvents = 'auto';
+      } else if(activeFilter === 'biz'){
+        const isBiz = n.getAttribute('data-biz') === 'true';
+        n.style.opacity = isBiz ? '1' : '0.25';
+        n.style.pointerEvents = isBiz ? 'auto' : 'none';
+      } else if(activeFilter === 'winter'){
+        const match = n.getAttribute('data-epoch') === 'winter';
+        n.style.opacity = match ? '1' : '0.25';
+        n.style.pointerEvents = match ? 'auto' : 'none';
+      } else if(activeFilter === 'deep'){
+        const match = n.getAttribute('data-epoch') === 'deep-learning' || n.getAttribute('data-epoch') === 'llm-era';
+        n.style.opacity = match ? '1' : '0.25';
+        n.style.pointerEvents = match ? 'auto' : 'none';
+      } else if(activeFilter === 'foundation'){
+        const match = n.getAttribute('data-epoch') === 'foundation';
+        n.style.opacity = match ? '1' : '0.25';
+        n.style.pointerEvents = match ? 'auto' : 'none';
+      }
+    });
+  });
+});
+
+// Key nodes pulse animation
+const keyNodes = document.querySelectorAll('.node.key');
+keyNodes.forEach((n,i)=>{
+  n.style.animation = `pulse 2s ${i*0.5}s ease-in-out infinite`;
+});
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    detailCard.classList.remove('show');
+    if(selectedNode){ selectedNode.classList.remove('selected'); selectedNode = null; }
+  }
+  if(e.key === '0'){ scale=1; offsetX=-(yearToX(1850)-80); applyTransform(); }
+});
+
+// Resize handler
+window.addEventListener('resize', ()=>{
+  const wasMobile = isMobile;
+  if(window.innerWidth < 768 && !wasMobile){
+    location.reload();
+  } else if(window.innerWidth >= 768 && wasMobile){
+    location.reload();
+  }
+});
+
+// Add pulse keyframes
+const style = document.createElement('style');
+style.textContent = `
+@keyframes pulse {
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.4)}
+}
+.node.key:nth-child(odd){animation-delay:0s!important}
+.node.key:nth-child(even){animation-delay:1s!important}
+`;
+document.head.appendChild(style);
+</script>
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>AI 的想法是最近几十年才有的吗？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：不是：亚里士多德的逻辑（2300 年前）、帕斯卡的计算机器（1642 年）、图灵的论文（1936 年），思想比机器早得多。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson1-turing-judge.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">图灵裁判</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">机器能思考吗？图灵用一场游戏来检验</div></a><a href="lesson3-gradient-descent.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">梯度下降沙盒</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">光有想法不够，机器得真的会学：怎么学？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">为什么爆发点是 2012 年，不是 2002？「相邻可能」：想法、工程、数据、算力四样东西一起熟了才会爆发。</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
