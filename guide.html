@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>家长教学指南 · AI 夏令营</title>
+<style>
+:root {
+  --bg: #0b0b14; --panel: #151528; --panel2: #1c1c38;
+  --border: #2a2a4a; --text: #d0d0dc; --text2: #8888a8; --bright: #fff;
+  --cyan: #22d3ee; --orange: #f59e0b; --green: #4ade80; --red: #ef4444; --amber: #fbbf24;
+  --font: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.7; overflow-x: hidden; }
+.header { text-align: center; padding: 40px 20px 24px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(34,211,238,0.07), transparent); }
+.header .icon { font-size: 3rem; }
+.header h1 { font-size: 1.9rem; color: var(--bright); margin-top: 6px; }
+.header h1 span { background: linear-gradient(90deg, var(--cyan), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header .sub { margin-top: 8px; color: var(--text2); font-size: 0.95rem; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 18px 60px; }
+.sec { margin-top: 42px; }
+.sec h2 { font-size: 1.25rem; color: var(--bright); display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.sec h2 .n { color: var(--cyan); font-size: 0.85rem; background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.3); padding: 2px 8px; border-radius: 20px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-top: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+.intu { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: 10px; padding: 12px 14px; }
+.intu b { color: var(--bright); }
+.intu small { display: block; color: var(--text2); margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.88rem; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel2); color: var(--bright); white-space: nowrap; }
+td .q { color: var(--cyan); }
+td .f { color: var(--amber); }
+td .d { color: var(--orange); }
+td .p { color: var(--text2); font-size: 0.82rem; }
+.badge { display: inline-block; font-size: 0.72rem; padding: 1px 8px; border-radius: 20px; border: 1px solid var(--border); color: var(--text2); margin-right: 6px; }
+.tag-tech { color: var(--cyan); border-color: rgba(34,211,238,0.4); }
+.tag-deep { color: var(--orange); border-color: rgba(245,158,11,0.4); }
+.note { border: 1px solid rgba(245,158,11,0.35); background: rgba(245,158,11,0.06); border-radius: 10px; padding: 12px 16px; margin-top: 14px; color: var(--amber); font-size: 0.9rem; }
+ul.tight { padding-left: 20px; margin-top: 8px; }
+ul.tight li { margin-top: 6px; }
+.footer { text-align: center; color: var(--text2); font-size: 0.82rem; padding: 30px 0 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="icon">🧑‍🏫</div>
+  <h1>AI 夏令营 <span>家长教学指南</span></h1>
+  <p class="sub">给 Sky 的上课手册：怎么讲、讲多深、怎么检验孩子真懂了</p>
+  <p style="margin-top:10px;">
+    <span class="badge">费曼式</span><span class="badge">每课 1 小时</span><span class="badge">电脑 + iPad</span><span class="badge">每周 2-3 次</span>
+  </p>
+</div>
+
+<div class="wrap">
+
+  <div class="sec">
+    <h2><span class="n">1</span>教学法：费曼式四步</h2>
+    <div class="card">
+      <ul class="tight">
+        <li><b style="color:var(--bright)">先问再讲</b>：每课从「开场问题」开始（石头一万年后会说话算智能吗？），让孩子先猜，再揭晓。</li>
+        <li><b style="color:var(--bright)">拆到 12 岁能讲给 8 岁听</b>：每个抽象概念配一个生活隐喻（学习=蒙眼下山；股票=押注未来；卷积=手电筒扫图）。</li>
+        <li><b style="color:var(--bright)">动手验证</b>：12 个交互页面就是实验室，先调参数看现象，再看数据解释现象。</li>
+        <li><b style="color:var(--bright)">复述检验</b>：每课结尾点开「🎓 讲给弟弟听」，让牧之把这一课讲给牧童。他讲得出来，才算真懂。</li>
+      </ul>
+      <div class="note">🧐 费曼检查三问：① 三句话不用术语能讲清核心吗？② 每个抽象概念有 12 岁隐喻吗？③ 交互页面是在揭示原理，还是只是好看？</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="n">2</span>八种核心直觉（课程目标）</h2>
+    <div class="grid2" style="margin-top:14px;">
+      <div class="intu"><b>① 智能是信息处理</b><small>不是魔法，是计算</small></div>
+      <div class="intu"><b>② 学习是从数据中找模式</b><small>机器「学会」和人类「学会」的异同</small></div>
+      <div class="intu"><b>③ 简单规则 × 海量数据 = 涌现智能</b><small>复杂度从简单中来</small></div>
+      <div class="intu"><b>④ AI 是工具，不是神</b><small>知道它能做什么、不能做什么、为什么</small></div>
+      <div class="intu"><b>⑤ AI 是一桩生意</b><small>芯片、算力、数据、模型，每一层都有人买单</small></div>
+      <div class="intu"><b>⑥ 资本驱动技术</b><small>谁能筹到钱、谁有最好的芯片，决定 AI 往哪走</small></div>
+      <div class="intu"><b>⑦ AI 是国家竞争力</b><small>中美博弈是具体的芯片禁令和供应链卡位</small></div>
+      <div class="intu"><b>⑧ 你们可以创造，不只是使用</b><small>ownership mentality：结课项目证明</small></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="n">3</span>双轨设计：两个孩子怎么带</h2>
+    <div class="card">
+      <ul class="tight">
+        <li><b style="color:var(--cyan)">同一锚点</b>：核心类比两人共用（神经网络=投票，股票=押注未来）。</li>
+        <li><b style="color:var(--cyan)">并行深度</b>：牧童（11 岁）调参数看现象；牧之（14 岁）看数据解释现象。</li>
+        <li><b style="color:var(--cyan)">对等教学</b>：让牧之给牧童解释一个概念。教会弟弟 = 真懂了。</li>
+        <li><b style="color:var(--orange)">深水区分岔</b>：每课最后 10 分钟（🌊 深水区）只要求牧之，牧童旁听不要求。标注「深水区」的环节别让牧童有压力。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="n">4</span>12 课速查表</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>课</th><th>主题</th><th>核心问题</th><th>费曼锚点</th><th>深水区（牧之）</th><th>交互页面</th></tr>
+      <tr><td>1</td><td>什么是智能</td><td class="q">两个聊天窗口，一个真人一个机器，能分辨吗？</td><td class="f">智能不是「知道很多」，是「没见过也能做对」</td><td class="d">中文屋（Searle）</td><td class="p">图灵裁判</td></tr>
+      <tr><td>2</td><td>AI 从哪里来</td><td class="q">想了 2500 年，为什么最近 10 年爆发？</td><td class="f">几千年的想法 + 几十年的工程 + 十几年的数据 + 几年的算力，一起熟了</td><td class="d">为什么是 2012？相邻可能</td><td class="p">互动时间线</td></tr>
+      <tr><td>3</td><td>梯度下降 ★</td><td class="q">蒙着眼站在山上，怎么走到最低点？</td><td class="f">学习 = 蒙眼下山。学太快摔死，学太慢饿死</td><td class="d">局部 vs 全局最小值；为什么 Adam 更好</td><td class="p">梯度下降沙盒（WebGL 3D）</td></tr>
+      <tr><td>4</td><td>神经网络 ★</td><td class="q">机器神经元只有乘法和加法，也能学会看猫？</td><td class="f">神经网络 = 一堆小开关，看前一层输出决定开多大</td><td class="d">MLP→CNN→Transformer；Scaling Laws</td><td class="p">神经网络沙盒（拖拽权重）</td></tr>
+      <tr><td>5</td><td>计算机视觉 ★</td><td class="q">你看到猫花 0.3 秒，机器看到 48 万个数字？</td><td class="f">图像 = 数字矩阵；卷积 = 小窗口扫过去找特征</td><td class="d">对抗样本：熊猫变长臂猿</td><td class="p">涂鸦识别 + 卷积热力图 + GAN</td></tr>
+      <tr><td>6</td><td>LLM 原理 ★</td><td class="q">机器不认识天空和蓝色，怎么还能聊天？</td><td class="f">GPT 的秘密 = 猜下一个词，猜得太好，像理解了</td><td class="d">涌现；Scaling Laws；Ilya 与梁文锋</td><td class="p">LLM 可视化（DeepSeek 实时）</td></tr>
+      <tr><td>7</td><td>AI 改变世界</td><td class="q">AI 像新电力，正在点亮哪些房间？</td><td class="f">不是「AI 能做什么」，是「哪些问题以前无解，现在能解了」</td><td class="d">Jevons 悖论；会用 vs 不会用的人</td><td class="p">行业热力图 + 真/假游戏</td></tr>
+      <tr><td>8</td><td>AI 产业链 ★</td><td class="q">手机里的 AI 助手，背后是哪条跨三大洲的链？</td><td class="f">沙子→芯片→数据中心→模型→App，五层楼，瓶颈在哪谁说了算</td><td class="d">摩尔定律减速；光刻机的政治</td><td class="p">产业链金字塔（分层展开）</td></tr>
+      <tr><td>9</td><td>AI 资本市场 ★</td><td class="q">NVIDIA 值 3 万亿，钱从哪来？推动还是绑架技术？</td><td class="f">股市 = 全世界押注未来；股票涨 = 很多人相信它更赚钱</td><td class="d">泡沫论：思科 PE 555 vs NVIDIA；孙正义</td><td class="p">AI 投资时光机（三模式）</td></tr>
+      <tr><td>10</td><td>AI 与国家命运 ★</td><td class="q">为什么美国不让英伟达卖最好的 GPU 给中国？</td><td class="f">芯片禁令 = 21 世纪的「石油禁运」</td><td class="d">技术主权悖论；三种 AI 治理模式</td><td class="p">AI 部长角色扮演</td></tr>
+      <tr><td>11</td><td>AI 的哲学与伦理</td><td class="q">AI 强到能做任何事，它应该被允许做什么？</td><td class="f">技术没有价值观，制造和使用技术的人有。问题是：谁的？</td><td class="d">停止按钮问题；Yudkowsky 回形针</td><td class="p">伦理困境卡（6 张翻牌）</td></tr>
+      <tr><td>12</td><td>你们是创造者</td><td class="q">学了 11 课，你最想用 AI 帮你做什么？</td><td class="f">AI 是副驾驶，不是替代品。你想开去哪？</td><td class="d">「你做了什么决定是 AI 帮不了你的？」</td><td class="p">概念全景图（64 概念）</td></tr>
+    </table>
+    </div>
+    <p style="color:var(--text2);font-size:0.82rem;margin-top:8px;">★ = 技术核心课（第 3-6 课），每课拆透一个原理。第 8-10 课为经济/金融/政治重课。</p>
+  </div>
+
+  <div class="sec">
+    <h2><span class="n">5</span>七人 · 七种偏执（第 12 课收束）</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>人物</th><th>课</th><th>偏执</th><th>代价</th></tr>
+      <tr><td>Turing</td><td>1</td><td>机器能思考</td><td>化学阉割，41 岁死去</td></tr>
+      <tr><td>Hinton</td><td>2-4</td><td>神经网络能工作</td><td>被无视 30 年</td></tr>
+      <tr><td>Sutskever</td><td>6, 11</td><td>更大模型 = 更强</td><td>亲手解雇 CEO，最终离开</td></tr>
+      <tr><td>Hassabis</td><td>7</td><td>解决智能，再解一切</td><td>押上人生</td></tr>
+      <tr><td>黄仁勋</td><td>8, 9</td><td>GPU 不只是游戏卡</td><td>等了 30 年</td></tr>
+      <tr><td>Amodei</td><td>11</td><td>安全不能事后补丁</td><td>出走，从零开始</td></tr>
+      <tr><td>梁文锋</td><td>6, 9, 10</td><td>算力不够，算法凑</td><td>用更少打更大的仗</td></tr>
+    </table>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2><span class="n">6</span>推荐节奏</h2>
+    <div class="card">
+      <ul class="tight">
+        <li><b style="color:var(--bright)">频率</b>：每周 2-3 次（隔天），12 次课约 5-6 周。</li>
+        <li><b style="color:var(--bright)">课前</b>：群里发一个抢答问题热身。</li>
+        <li><b style="color:var(--bright)">课后</b>：挑战题二选一，找一个孩子发现的 AI 应用案例，或查今天 NVIDIA 股价。</li>
+        <li><b style="color:var(--bright)">设备</b>：电脑主屏跑沙盒（WebGL/拖拽），iPad 给另一个孩子看概念卡。</li>
+        <li><b style="color:var(--bright)">核心英文概念</b>：主讲中文，概念首次出现标英文（Intelligence, Turing Test, Gradient Descent…），不考单词，见过就行。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">🦞 AI 夏令营 · 12 课 · 家长指南 v1（2026-08 审计后增补）</div>
+</div>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
