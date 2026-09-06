@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI部长角色扮演 · AI 夏令营</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a; --panel:#1a1a2e; --panel2:#16213e;
+  --gold:#f0a500; --gold2:#ffb830; --text:#e0e0e0; --text2:#a0a0b0;
+  --red:#ff4757; --green:#2ed573; --blue:#1e90ff; --purple:#e8795f;
+  --border:#2a2a4a;
+}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  min-height:100vh; overflow-x:hidden; user-select:none;
+  -webkit-user-select:none; -webkit-tap-highlight-color:transparent;
+}
+
+/* Header */
+.header{
+  background:linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 60%, #162040 100%);
+  padding:16px 24px; display:flex; align-items:center; gap:16px;
+  border-bottom:1px solid var(--border); flex-wrap:wrap;
+}
+.header h1{ font-size:1.4rem; background:linear-gradient(90deg, var(--purple), var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.header .subtitle{ font-size:0.8rem; color:var(--text2); }
+
+/* Scene container */
+.scene{ max-width:900px; margin:0 auto; padding:20px 16px 40px; }
+
+/* Intro splash */
+.intro-splash{
+  text-align:center; padding:60px 20px;
+  border:1px solid var(--border); border-radius:16px;
+  background:var(--panel); margin:20px 0;
+}
+.intro-splash .seal{ font-size:4rem; margin-bottom:16px; }
+.intro-splash h2{ font-size:1.6rem; margin-bottom:12px; color:var(--gold); }
+.intro-splash .brief{ font-size:1rem; color:var(--text2); max-width:500px; margin:0 auto 24px; line-height:1.7; }
+.intro-splash .scenario-tag{
+  display:inline-block; padding:6px 16px; border-radius:20px;
+  background:rgba(168,85,247,0.15); border:1px solid var(--purple);
+  color:var(--purple); font-size:0.85rem; margin-bottom:20px;
+}
+
+/* Decision card */
+.decision-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px;
+  padding:24px; margin:16px 0; position:relative; overflow:hidden;
+}
+.decision-card::before{
+  content:''; position:absolute; top:0; left:0; width:4px; height:100%;
+  background:var(--purple); border-radius:2px 0 0 2px;
+}
+.decision-card h3{ font-size:1.1rem; margin-bottom:8px; color:var(--gold); }
+.decision-card .context{ font-size:0.9rem; color:var(--text2); line-height:1.6; margin-bottom:16px; }
+.decision-card .stakes{
+  display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;
+}
+.stake-tag{
+  padding:4px 12px; border-radius:14px; font-size:0.78rem;
+  background:rgba(240,165,0,0.1); border:1px solid rgba(240,165,0,0.3); color:var(--gold);
+}
+
+/* Options */
+.options{ display:flex; flex-direction:column; gap:10px; }
+.option-btn{
+  display:flex; align-items:center; gap:12px; padding:14px 18px;
+  border-radius:10px; border:1px solid var(--border); background:var(--panel2);
+  color:var(--text); cursor:pointer; font-size:0.92rem; text-align:left;
+  transition:all 0.2s; font-family:inherit;
+}
+.option-btn:hover{ border-color:var(--purple); background:rgba(168,85,247,0.08); }
+.option-btn:active{ transform:scale(0.98); }
+.option-btn .opt-icon{ font-size:1.3rem; flex-shrink:0; }
+.option-btn .opt-text{ flex:1; }
+.option-btn .opt-label{ font-weight:600; margin-bottom:2px; }
+.option-btn .opt-desc{ font-size:0.78rem; color:var(--text2); }
+.option-btn.selected{ border-color:var(--gold); background:rgba(240,165,0,0.1); }
+
+/* Result panel */
+.result-panel{
+  background:var(--panel2); border:1px solid var(--border); border-radius:12px;
+  padding:20px; margin:16px 0; display:none;
+}
+.result-panel.show{ display:block; animation:fadeUp 0.4s ease-out; }
+.result-panel h4{ color:var(--gold); margin-bottom:12px; font-size:1rem; }
+.result-panel .news-date{ color:var(--text2); font-size:0.78rem; margin-bottom:8px; }
+.result-panel .news-body{ line-height:1.7; margin-bottom:16px; font-size:0.92rem; }
+.result-panel .impact-stats{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.impact-stat{
+  padding:8px 14px; border-radius:8px; font-size:0.85rem; font-weight:600;
+  display:flex; align-items:center; gap:6px;
+}
+.impact-stat.positive{ background:rgba(46,213,115,0.15); color:var(--green); }
+.impact-stat.negative{ background:rgba(255,71,87,0.15); color:var(--red); }
+.impact-stat.neutral{ background:rgba(30,144,255,0.15); color:var(--blue); }
+
+/* Radar chart */
+.radar-section{ margin:24px 0; }
+.radar-section h3{ color:var(--gold); font-size:1.05rem; margin-bottom:8px; }
+.radar-section .note{ color:var(--text2); font-size:0.78rem; margin-bottom:16px; }
+.radar-container{ display:flex; justify-content:center; }
+#radarSvg{ max-width:100%; height:auto; }
+
+/* Supply chain animation */
+.chain-section{ margin:24px 0; }
+.chain-section h3{ color:var(--gold); font-size:1.05rem; margin-bottom:12px; }
+.chain{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
+.chain-node{
+  padding:10px 16px; border-radius:8px; font-size:0.82rem; font-weight:600;
+  transition:all 0.5s; text-align:center; min-width:80px;
+}
+.chain-node.normal{ background:var(--panel2); border:1px solid var(--border); color:var(--text); }
+.chain-node.warning{ background:rgba(255,71,87,0.15); border:1px solid var(--red); color:var(--red); animation:pulse 0.8s infinite; }
+.chain-node.cascade{ background:rgba(240,165,0,0.15); border:1px solid var(--gold); color:var(--gold); }
+.chain-arrow{ color:var(--text2); font-size:1.2rem; }
+
+/* Final summary */
+.final-summary{
+  background:linear-gradient(135deg, var(--panel) 0%, #1a1030 100%);
+  border:2px solid var(--purple); border-radius:14px; padding:24px; margin:24px 0;
+  text-align:center; display:none;
+}
+.final-summary.show{ display:block; animation:fadeUp 0.5s ease-out; }
+.final-summary h3{ color:var(--gold); font-size:1.2rem; margin-bottom:12px; }
+.final-summary .verdict{ font-size:1rem; line-height:1.7; color:var(--text); margin-bottom:16px; }
+.final-summary .path-trace{ font-size:0.85rem; color:var(--text2); }
+
+/* Buttons */
+.btn{
+  padding:10px 22px; border-radius:8px; border:1px solid var(--border);
+  background:var(--panel2); color:var(--text); cursor:pointer;
+  font-size:0.9rem; transition:all 0.15s; font-family:inherit;
+}
+.btn:hover{ border-color:var(--gold); color:#fff; }
+.btn:active{ transform:scale(0.97); }
+.btn.accent{ background:var(--purple); border-color:var(--purple); color:#fff; font-weight:600; }
+.btn.accent:hover{ filter:brightness(1.15); }
+.btn.gold{ background:var(--gold); border-color:var(--gold); color:#0f0f1a; font-weight:700; }
+
+.progress-bar{
+  height:4px; background:var(--border); border-radius:2px; margin:16px 0;
+}
+.progress-fill{ height:100%; background:var(--purple); border-radius:2px; transition:width 0.5s; }
+
+/* Animations */
+@keyframes fadeUp{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Responsive */
+@media(max-width:768px){
+  .header{ padding:12px 16px; }
+  .header h1{ font-size:1.15rem; }
+  .scene{ padding:12px 10px 32px; }
+  .intro-splash{ padding:40px 16px; }
+  .decision-card{ padding:16px; }
+  .chain{ flex-direction:column; align-items:stretch; }
+  .chain-arrow{ transform:rotate(90deg); }
+}
+
+/* Toast */
+.toast{
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  background:rgba(46,213,115,0.95); color:#0f0f1a; padding:10px 24px;
+  border-radius:24px; font-weight:700; font-size:0.9rem; z-index:100;
+  animation:toastIn 0.3s ease-out,toastOut 0.3s 2.5s ease-in forwards;
+  pointer-events:none;
+}
+@keyframes toastIn{ from{opacity:0;transform:translateX(-50%) translateY(-20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+@keyframes toastOut{ from{opacity:1} to{opacity:0;transform:translateX(-50%) translateY(-10px)} }
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson9-investment-machine.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson11-ethics-cards.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+
+<div class="header">
+  <h1>🏛️ AI 部长角色扮演</h1>
+  <span class="subtitle">第10课 ： 你是 AI 战略部长，你的决定影响全国</span>
+</div>
+
+<div class="scene" id="sceneArea">
+  <!-- Intro -->
+  <div class="intro-splash" id="introSplash">
+    <div class="seal">🏛️</div>
+    <h2>2030年·北京</h2>
+    <div class="scenario-tag">🇨🇳 战略决策模拟</div>
+    <div class="brief">
+      美国芯片禁令全面升级。中国AI算力受限。<br>
+      你被任命为<b>AI战略部长</b>。<br>
+      全国AI企业都在等你的决定。<br>
+      三条路，选哪条？
+    </div>
+    <button class="btn gold" onclick="startGame()">开始决策 →</button>
+  </div>
+
+  <div id="gameArea" style="display:none;">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div id="decisionArea"></div>
+    <div id="resultArea"></div>
+    <div id="finalArea"></div>
+  </div>
+</div>
+
+<script>
+// Game state
+let state = { decisions: [], step: 0 };
+const STEPS = {
+  1: {
+    title: '第一层决策：算力之困',
+    context: 'GPT-6 需要50万张GPU训练。美国禁令升级，NVIDIA A100/H100全面禁售。华为昇腾芯片性能约NVIDIA的40%，但年产量仅满足10%需求。你面前有三条路。',
+    stakes: ['预算: ¥3000亿', '窗口期: 6-12个月', '涉及: 10万AI企业'],
+    options: [
+      { icon:'🏭', label:'A·全投芯片制造', desc:'投入¥3000亿自研芯片。周期3-5年，风险极高但一旦成功可彻底摆脱依赖。', key:'A' },
+      { icon:'🧮', label:'B·算法绕过(DeepSeek路线)', desc:'不靠硬件靠算法。投资AI软件效率，用有限GPU训练大模型。成本低，见效快。', key:'B' },
+      { icon:'🤝', label:'C·外交谈判', desc:'游说欧洲、日本建立联合供应链。争取ASML DUV光刻机许可。路线长但风险分散。', key:'C' }
+    ]
+  },
+  '2A': {
+    title: '第二层决策·芯片路线(A分支)',
+    context: '6个月后：中芯国际7nm良率提升至60%，但成本是台积电的3倍。国产GPU流片成功，性能约A100的30%。资金消耗¥1200亿。国际制裁进一步收紧：ASML连DUV都禁了。',
+    stakes: ['已花费: ¥1200亿', '国产GPU性能: A100的30%', 'EUV仍被禁'],
+    options: [
+      { icon:'🔥', label:'A1·加大投入冲刺', desc:'再投¥1000亿加速。赌2年内自主量产5nm。风险：资金链断裂可能拖垮其他产业。', key:'A1' },
+      { icon:'🔄', label:'A2·双轨并行', desc:'芯片自研+同时引进降级版进口GPU。接受性能差距，用数量弥补。', key:'A2' }
+    ]
+  },
+  '2B': {
+    title: '第二层决策·算法路线(B分支)',
+    context: '6个月后：算法效率提升40%！中国AI公司用有限GPU训练出接近GPT-4级别的模型，成本仅为OpenAI的1/8。硅谷震惊。但模型在顶尖推理任务上仍落后约20%。',
+    stakes: ['效率提升: +40%', '成本: OpenAI 1/8', '顶尖推理差距: 20%'],
+    options: [
+      { icon:'🚀', label:'B1·深耕算法极致', desc:'继续优化：目标是1/20成本达到同等性能。坚信"算力不够算法凑"。', key:'B1' },
+      { icon:'⚖️', label:'B2·混合路线', desc:'算法优化保住应用层，同时低调布局芯片研发。两条腿走路。', key:'B2' }
+    ]
+  },
+  '2C': {
+    title: '第二层决策·外交路线(C分支)',
+    context: '6个月后：外交突破！ASML获准向中国出售DUV光刻机（不含EUV）。日本、韩国同意建立联合芯片供应链。但美国国会议员推动新法案，可能推翻现有许可。',
+    stakes: ['DUV许可: ✅获得', 'EUV: ❌仍禁', '日韩合作: ✅初步达成', '风险: 美国国会可能推翻'],
+    options: [
+      { icon:'📜', label:'C1·签订长期协议', desc:'趁热打铁，签10年供应协议。用法律绑死供应商。需要重大让步。', key:'C1' },
+      { icon:'🏗️', label:'C2·窗口期速建', desc:'趁供应窗口期疯狂建厂囤货。2年内建3座DUV产线，储备5年芯片。', key:'C2' }
+    ]
+  },
+  // Third step results
+  A1: { title:'A1·冲刺路线结果', date:'6个月后：2031年6月', news:'中芯国际5nm试产成功，良率仅30%但打破了技术封锁。然而总投入¥2200亿，财政压力巨大。国产GPU性能达到A100的55%。国际市场开始正视中国芯片能力。', impacts:[{text:'5nm试产成功','class':'positive'},{text:'良率仅30%','class':'negative'},{text:'投入¥2200亿','class':'negative'},{text:'GPU达A100 55%','class':'positive'}], verdict:'你选择了最艰难的路：自主攻坚。代价巨大但换来了真正的技术主权。5-8年后可能实现芯片自主。这是1950年代"两弹一星"精神的AI时代版本。' },
+  A2: { title:'A2·双轨并行结果', date:'6个月后：2031年6月', news:'国产芯片稳扎稳打，7nm良率提升至80%，性能达到A100的40%。同时引进降级版进口GPU维持AI应用运转。AI产业没有停摆，但严重依赖进口。', impacts:[{text:'7nm良率80%','class':'positive'},{text:'GPU性能A100 40%','class':'neutral'},{text:'进口依赖仍在','class':'negative'},{text:'AI产业未停摆','class':'positive'}], verdict:'务实的中间路线：不追求完美自研，确保AI产业持续运转。短期安全但长期受制于人。日本1970年代半导体崛起的路线。' },
+  B1: { title:'B1·算法极致结果', date:'6个月后：2031年6月', news:'算法突破震惊世界！中国AI模型以1/20成本达到GPT-5.5水平。全球AI界重新审视"算力迷信"。多家北美AI公司开始模仿DeepSeek方案。华尔街投行下调NVIDIA目标价15%。', impacts:[{text:'1/20成本接近GPT-5.5','class':'positive'},{text:'NVIDIA目标价↓15%','class':'positive'},{text:'全球效仿','class':'positive'},{text:'推理差距缩小至10%','class':'positive'}], verdict:'DeepSeek路线被证明是革命性的：你改变了全球AI产业对"算力=一切"的信仰。梁文锋会为你鼓掌。不过基础研究的差距仍然存在。' },
+  B2: { title:'B2·混合路线结果', date:'6个月后：2031年6月', news:'双线并进。算法效率提升35%，中国AI应用层面全球领先（短视频、电商、教育AI）。芯片自研缓慢但稳步前进，3nm工艺突破在望。美国开始担心"中国在AI应用层不可阻挡"。', impacts:[{text:'算法效率+35%','class':'positive'},{text:'AI应用全球领先','class':'positive'},{text:'3nm工艺在望','class':'positive'},{text:'美国警惕','class':'neutral'}], verdict:'最均衡的路线：和中国2024年的实际策略最接近。应用层领先创造收入反哺基础研发。缺点是两边都不极致。' },
+  C1: { title:'C1·长期协议结果', date:'6个月后：2031年6月', news:'与ASML、东京电子签订10年供应协议。中国获得稳定的DUV光刻机供应。EUV仍被禁但DUV可满足7nm以上需求。代价：芯片定价权让给荷兰和日本，中国芯片公司利润被压缩。', impacts:[{text:'DUV稳定供应','class':'positive'},{text:'定价权丧失','class':'negative'},{text:'7nm以上自给','class':'neutral'},{text:'利润被压缩','class':'negative'}], verdict:'现实主义外交的成功：确保了AI产业的燃料供应。但代价是利润让渡和部分主权让渡。邓小平"韬光养晦"的AI时代版本。' },
+  C2: { title:'C2·窗口期速建结果', date:'6个月后：2031年6月', news:'利用外交窗口期疯狂建厂！3座DUV产线建成，芯片自给率从20%飙升至65%。囤积了5年的先进芯片库存。即使明天制裁加码，中国AI也能维持运转。但建厂成本极高，财政赤字扩大。', impacts:[{text:'芯片自给率65%','class':'positive'},{text:'5年库存','class':'positive'},{text:'财政赤字扩大','class':'negative'},{text:'3座产线建成','class':'positive'}], verdict:'抓住窗口期的果断领导者：把外交突破转化为实际工业能力。代价是财政压力，但赢得了宝贵的时间。类似2022年芯片法案后美国本土建厂热潮。' }
+};
+
+function startGame(){
+  document.getElementById('introSplash').style.display='none';
+  document.getElementById('gameArea').style.display='block';
+  state = { decisions: [], step: 1 };
+  document.getElementById('finalArea').innerHTML='';
+  updateProgress();
+  renderDecision(1);
+}
+
+function updateProgress(){
+  const pct = Math.min(100, (state.step-1) * 25);
+  document.getElementById('progressFill').style.width = pct+'%';
+}
+
+function renderDecision(step){
+  const d = STEPS[step];
+  if(!d) return;
+  const area = document.getElementById('decisionArea');
+  area.innerHTML = `
+    <div class="decision-card">
+      <h3>📋 ${d.title}</h3>
+      <div class="context">${d.context}</div>
+      <div class="stakes">${d.stakes.map(s=>`<span class="stake-tag">${s}</span>`).join('')}</div>
+      <div class="options">
+        ${d.options.map(o=>`
+          <button class="option-btn" onclick="pickOption('${step}','${o.key}')">
+            <span class="opt-icon">${o.icon}</span>
+            <span class="opt-text">
+              <div class="opt-label">${o.label}</div>
+              <div class="opt-desc">${o.desc}</div>
+            </span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('resultArea').innerHTML='';
+}
+
+function pickOption(fromStep, key){
+  state.decisions.push({from:fromStep, choice:key});
+  
+  // If this is step 1, go to step 2 of that branch
+  if(fromStep === 1){
+    state.step = 2;
+    updateProgress();
+    renderDecision('2'+key);
+    return;
+  }
+  
+  // If step 2, show final result
+  if(typeof fromStep === 'number' && fromStep === 2){
+    showFinalResult(key);
+  } else {
+    // String key means final result
+    showFinalResult(key);
+  }
+}
+
+function showFinalResult(key){
+  const r = STEPS[key];
+  if(!r) return;
+  
+  state.step = 3;
+  updateProgress();
+  document.getElementById('progressFill').style.width = '100%';
+  
+  const area = document.getElementById('resultArea');
+  area.innerHTML = `
+    <div class="result-panel show">
+      <h4>📰 ${r.title}</h4>
+      <div class="news-date">${r.date}</div>
+      <div class="news-body">${r.news}</div>
+      <div class="impact-stats">
+        ${r.impacts.map(i=>`<span class="impact-stat ${i.class}">${i.class==='positive'?'📈':i.class==='negative'?'📉':'📊'} ${i.text}</span>`).join('')}
+      </div>
+    </div>
+  `;
+  
+  // Show final summary
+  const finalArea = document.getElementById('finalArea');
+  const pathStr = state.decisions.map(d=>d.choice).join(' → ');
+  finalArea.innerHTML = `
+    <div class="final-summary show">
+      <h3>🏆 决策总结</h3>
+      <div class="verdict">${r.verdict}</div>
+      <div class="path-trace">你的决策路径: ${pathStr}</div>
+      <div style="margin-top:16px">
+        <button class="btn accent" onclick="resetGame()">🔄 重新决策</button>
+      </div>
+    </div>
+  `;
+  
+  // Trigger chain animation
+  setTimeout(animateChain, 500);
+}
+
+function resetGame(){
+  document.getElementById('introSplash').style.display='block';
+  document.getElementById('gameArea').style.display='none';
+  state = { decisions: [], step: 0 };
+}
+
+// Radar chart
+function drawRadar(){
+  const svg = document.getElementById('radarSvg');
+  if(!svg) return;
+  const cx=150,cy=150,r=120,levels=5;
+  const labels=['论文','专利','模型','投资','算力','人才'];
+  const angles=labels.map((_,i)=>-Math.PI/2+Math.PI*2*i/labels.length);
+  // China vs US data
+  const cn=[0.75,0.85,0.55,0.40,0.25,0.70];
+  const us=[0.60,0.40,0.90,0.95,1.00,0.85];
+  
+  let html='';
+  // Grid
+  for(let l=1;l<=levels;l++){
+    let pts=angles.map(a=>`${cx+r*l/levels*Math.cos(a)},${cy+r*l/levels*Math.sin(a)}`).join(' ');
+    html+=`<polygon points="${pts}" fill="none" stroke="#2a2a4a" stroke-width="1"/>`;
+  }
+  // Axes
+  angles.forEach(a=>{
+    html+=`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(a)}" y2="${cy+r*Math.sin(a)}" stroke="#2a2a4a" stroke-width="1"/>`;
+    html+=`<text x="${cx+(r+20)*Math.cos(a)}" y="${cy+(r+20)*Math.sin(a)}" fill="#a0a0b0" text-anchor="middle" dominant-baseline="middle" font-size="12">${labels[angles.indexOf(a)]}</text>`;
+  });
+  // US polygon
+  let usPts=angles.map((a,i)=>`${cx+r*us[i]*Math.cos(a)},${cy+r*us[i]*Math.sin(a)}`).join(' ');
+  html+=`<polygon points="${usPts}" fill="rgba(30,144,255,0.2)" stroke="#1e90ff" stroke-width="2"/>`;
+  // CN polygon
+  let cnPts=angles.map((a,i)=>`${cx+r*cn[i]*Math.cos(a)},${cy+r*cn[i]*Math.sin(a)}`).join(' ');
+  html+=`<polygon points="${cnPts}" fill="rgba(240,165,0,0.2)" stroke="#f0a500" stroke-width="2"/>`;
+  
+  svg.innerHTML=html;
+}
+
+// Chain animation
+function animateChain(){
+  const nodes=document.querySelectorAll('.chain-node');
+  nodes.forEach((n,i)=>{
+    setTimeout(()=>{
+      n.classList.add('warning');
+      setTimeout(()=>{
+        n.classList.remove('warning');
+        n.classList.add('cascade');
+      },800);
+    },i*400);
+  });
+}
+
+// Toast
+function showToast(msg){
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// Init radar on load
+window.addEventListener('DOMContentLoaded', ()=>{
+  drawRadar();
+});
+</script>
+
+<!-- Dashboard -->
+<div style="max-width:900px;margin:0 auto;padding:0 16px 24px;">
+  <div class="radar-section">
+    <h3>📊 中美AI实力仪表板</h3>
+    <div class="note">🇨🇳 金色 = 中国 &nbsp;|&nbsp; 🇺🇸 蓝色 = 美国 · 数据源自2026年公开报告综合估算</div>
+    <svg id="radarSvg" viewBox="0 0 300 300" width="380" height="380"></svg>
+  </div>
+
+  <div class="chain-section">
+    <h3>⛓️ 供应链中断连锁反应</h3>
+    <div style="text-align:center;margin-bottom:8px;">
+      <button class="btn" onclick="animateChain()" id="btnTrigger">▶ 触发"台积电停产"模拟</button>
+    </div>
+    <div class="chain">
+      <div class="chain-node normal">🏭 台积电<br>停产</div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-node normal">📦 全球GPU<br>供应腰斩</div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-node normal">💰 GPU价格<br>飞涨300%</div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-node normal">⚡ 训练成本<br>翻5倍</div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-node normal">🛑 OpenAI<br>暂停GPT-6</div>
+      <span class="chain-arrow">→</span>
+      <div class="chain-node normal">🌍 全球AI<br>进展减速</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>芯片被禁，你会选哪条路？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：自研（慢但自主）/ 绕道（租算力）/ 谈判（受制于人）：没有完美答案，决策就是权衡。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson9-investment-machine.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">投资时光机</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">股市在押注 AI 的未来</div></a><a href="lesson11-ethics-cards.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">伦理困境卡</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">有了权力就有责任：AI 该被允许做什么？</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">技术主权悖论：越先进的技术越依赖全球分工，可越依赖越不安全：三种 AI 治理模式，你会怎么选？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
