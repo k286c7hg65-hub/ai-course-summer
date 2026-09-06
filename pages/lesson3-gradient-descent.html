@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>梯度下降沙盒 · AI 夏令营</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a;
+  --panel:#1a1a2e;
+  --panel2:#16213e;
+  --gold:#f0a500;
+  --gold2:#ffb830;
+  --text:#e0e0e0;
+  --text2:#a0a0b0;
+  --red:#ff4757;
+  --green:#2ed573;
+  --blue:#1e90ff;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  overflow-x:hidden;
+  height:auto;min-height:100vh;width:100vw;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+#app{
+  display:flex;
+  min-height:100vh;
+  width:100vw;
+}
+#canvas-container{
+  flex:1;
+  position:relative;
+  min-width:0;
+  cursor:grab;
+}
+#canvas-container:active{cursor:grabbing}
+#canvas-container.click-mode{cursor:crosshair}
+#canvas-container canvas{display:block}
+
+/* Info overlay on canvas */
+#info-overlay{
+  position:absolute;
+  top:16px;left:50%;
+  transform:translateX(-50%);
+  pointer-events:none;
+  z-index:10;
+}
+.info-toast{
+  background:rgba(240,165,0,0.9);
+  color:#0f0f1a;
+  padding:10px 20px;
+  border-radius:24px;
+  font-size:15px;
+  font-weight:700;
+  margin-bottom:8px;
+  animation:toastIn 0.4s ease-out,toastOut 0.4s 3s ease-in forwards;
+  text-align:center;
+  white-space:nowrap;
+}
+.info-toast.warn{
+  background:rgba(255,71,87,0.9);
+  color:#fff;
+}
+.info-toast.success{
+  background:rgba(46,213,115,0.9);
+  color:#0f0f1a;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+
+/* View angle buttons */
+#view-buttons{
+  position:absolute;
+  bottom:16px;left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:8px;
+  z-index:10;
+}
+.view-btn{
+  background:rgba(26,26,46,0.85);
+  color:var(--text2);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  padding:6px 14px;
+  font-size:12px;
+  cursor:pointer;
+  transition:all 0.2s;
+  backdrop-filter:blur(8px);
+}
+.view-btn:hover,.view-btn.active{
+  color:var(--gold);
+  border-color:var(--gold);
+  background:rgba(240,165,0,0.1);
+}
+
+/* Legend */
+#legend{
+  position:absolute;
+  top:16px;right:16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  color:var(--text2);
+  background:rgba(26,26,46,0.7);
+  padding:6px 12px;
+  border-radius:12px;
+  backdrop-filter:blur(8px);
+  z-index:5;
+}
+.legend-bar{
+  width:100px;height:10px;
+  border-radius:5px;
+  background:linear-gradient(to right,#0066ff,#00cc88,#ffcc00,#ff6600,#ff2200);
+}
+
+/* Control panel */
+#panel{
+  width:340px;
+  background:var(--panel);
+  border-left:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  overflow-x:hidden;
+  z-index:20;
+  transition:transform 0.3s ease;
+}
+#panel.collapsed{transform:translateX(100%)}
+#panel-toggle{
+  display:none;
+  position:absolute;
+  right:0;top:50%;
+  transform:translateY(-50%);
+  background:var(--panel);
+  color:var(--gold);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px 0 0 8px;
+  padding:12px 6px;
+  font-size:14px;
+  cursor:pointer;
+  z-index:21;
+  writing-mode:vertical-rl;
+}
+.panel-section{
+  padding:16px 20px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.panel-section h3{
+  font-size:13px;
+  color:var(--text2);
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:12px;
+}
+.panel-section h3::before{
+  content:'▸ ';
+  color:var(--gold);
+}
+
+/* Terrain buttons */
+.terrain-btns{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.terrain-btn{
+  flex:1;
+  min-width:70px;
+  padding:8px 6px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:var(--panel2);
+  color:var(--text2);
+  font-size:12px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-align:center;
+}
+.terrain-btn:hover{border-color:var(--gold);color:var(--gold)}
+.terrain-btn.active{
+  background:rgba(240,165,0,0.15);
+  border-color:var(--gold);
+  color:var(--gold);
+  font-weight:700;
+}
+.terrain-icon{font-size:20px;display:block;margin-bottom:4px}
+
+/* Slider */
+.slider-group{margin-bottom:12px}
+.slider-label{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  color:var(--text2);
+  margin-bottom:6px;
+}
+.slider-val{
+  color:var(--gold);
+  font-weight:700;
+  font-size:14px;
+}
+input[type=range]{
+  -webkit-appearance:none;
+  width:100%;
+  height:6px;
+  border-radius:3px;
+  background:rgba(255,255,255,0.1);
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:20px;height:20px;
+  border-radius:50%;
+  background:var(--gold);
+  cursor:pointer;
+  border:2px solid var(--bg);
+  box-shadow:0 0 10px rgba(240,165,0,0.4);
+}
+
+/* Optimizer radios */
+.radio-group{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.radio-opt{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.08);
+  cursor:pointer;
+  font-size:12px;
+  transition:all 0.2s;
+}
+.radio-opt:hover{border-color:rgba(255,255,255,0.2)}
+.radio-opt input{display:none}
+.radio-dot{
+  width:16px;height:16px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.3);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:all 0.2s;
+}
+.radio-opt input:checked+.radio-dot{
+  border-color:var(--gold);
+  background:rgba(240,165,0,0.2);
+}
+.radio-opt input:checked+.radio-dot::after{
+  content:'';
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--gold);
+}
+.radio-opt:has(input:checked){
+  background:rgba(240,165,0,0.08);
+  border-color:rgba(240,165,0,0.3);
+}
+.radio-label{font-weight:700;color:var(--text)}
+.radio-desc{font-size:10px;color:var(--text2);margin-top:1px}
+
+/* Action buttons */
+.action-btns{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.btn{
+  padding:10px 16px;
+  border-radius:10px;
+  border:none;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+  font-family:inherit;
+}
+.btn-primary{
+  background:var(--gold);
+  color:#0f0f1a;
+  flex:2;
+  min-width:100px;
+}
+.btn-primary:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(240,165,0,0.3)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{
+  background:var(--panel2);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.12);
+  flex:1;
+  min-width:60px;
+}
+.btn-secondary:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.25)}
+.btn-step{
+  background:rgba(30,144,255,0.15);
+  color:var(--blue);
+  border:1px solid rgba(30,144,255,0.3);
+}
+.btn-step:hover{background:rgba(30,144,255,0.25)}
+.btn-pause{
+  background:rgba(255,165,0,0.15);
+  color:#ffa500;
+  border:1px solid rgba(255,165,0,0.3);
+}
+
+/* Stats */
+.stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.stat-item{
+  background:var(--panel2);
+  border-radius:8px;
+  padding:10px 12px;
+  text-align:center;
+}
+.stat-val{
+  font-size:22px;
+  font-weight:700;
+  color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+.stat-label{
+  font-size:10px;
+  color:var(--text2);
+  margin-top:2px;
+}
+
+/* Speed slider */
+.speed-opts{
+  display:flex;
+  gap:4px;
+}
+.speed-btn{
+  flex:1;
+  padding:6px 4px;
+  border-radius:6px;
+  border:1px solid rgba(255,255,255,0.1);
+  background:var(--panel2);
+  color:var(--text2);
+  font-size:11px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-align:center;
+}
+.speed-btn.active{
+  background:rgba(240,165,0,0.15);
+  border-color:var(--gold);
+  color:var(--gold);
+}
+
+/* Competition toggle */
+.toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+.toggle-label{font-size:13px}
+.toggle-switch{
+  width:48px;height:26px;
+  background:rgba(255,255,255,0.15);
+  border-radius:13px;
+  cursor:pointer;
+  position:relative;
+  transition:background 0.3s;
+}
+.toggle-switch.on{background:var(--green)}
+.toggle-switch::after{
+  content:'';
+  position:absolute;
+  top:3px;left:3px;
+  width:20px;height:20px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform 0.3s;
+}
+.toggle-switch.on::after{transform:translateX(22px)}
+
+/* Competition result */
+.comp-result{
+  margin-top:8px;
+  padding:10px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:700;
+  text-align:center;
+  display:none;
+}
+.comp-result.show{display:block}
+.comp-result.win{background:rgba(46,213,115,0.15);color:var(--green);border:1px solid rgba(46,213,115,0.3)}
+.comp-result.stuck{background:rgba(255,71,87,0.1);color:var(--red);border:1px solid rgba(255,71,87,0.2)}
+
+/* Loss chart */
+#loss-container{
+  position:relative;
+  margin-top:8px;
+}
+#loss-canvas{
+  width:100%;
+  height:140px;
+  border-radius:8px;
+  background:var(--panel2);
+  display:block;
+}
+.loss-legend{
+  display:flex;
+  gap:12px;
+  margin-top:6px;
+  font-size:10px;
+  color:var(--text2);
+  justify-content:center;
+}
+.loss-dot{
+  display:inline-block;
+  width:8px;height:8px;
+  border-radius:50%;
+  margin-right:4px;
+}
+
+/* Step-by-step hint */
+#click-hint{
+  position:absolute;
+  bottom:60px;left:50%;
+  transform:translateX(-50%);
+  font-size:13px;
+  color:var(--text2);
+  background:rgba(26,26,46,0.8);
+  padding:6px 16px;
+  border-radius:16px;
+  pointer-events:none;
+  z-index:5;
+  transition:opacity 0.3s;
+}
+
+/* Mobile / iPad */
+@media(max-width:900px){
+  #app{flex-direction:column}
+  #canvas-container{height:55vh;flex:none}
+  #panel{
+    width:100%;height:45vh;
+    border-left:none;
+    border-top:1px solid rgba(255,255,255,0.08);
+  }
+  #panel-toggle{display:block}
+  #panel.collapsed{transform:translateY(calc(100% - 40px))}
+  #view-buttons{bottom:8px}
+  .view-btn{padding:4px 10px;font-size:11px}
+  #legend{top:8px;right:8px;font-size:10px}
+  .legend-bar{width:60px;height:8px}
+  .panel-section{padding:12px 16px}
+  #info-overlay{top:8px}
+  .info-toast{font-size:13px;padding:8px 16px}
+}
+@media(max-width:480px){
+  #panel{height:50vh}
+  #canvas-container{height:50vh}
+  .btn{padding:8px 12px;font-size:12px}
+  .stat-val{font-size:18px}
+  .terrain-btn{padding:6px 4px;font-size:11px}
+}
+
+/* upgrade5 移动端触控优化 */
+@media (max-width:600px){
+  body>nav{padding:9px 12px;}
+  body>nav a{font-size:0.85rem;padding:7px 2px;}
+  button{min-height:34px;}
+  .btn.small{min-height:32px;}
+  .close-btn{min-height:32px;}
+}
+
+
+
+/* upgrade5c 桌面端布局修正：app 高度=视口减导航，画布满高无空白；面板紧凑化让 LOSS 一屏可见 */
+@media (min-width:901px){
+  body>nav{height:40px;}
+  #app{height:calc(100vh - 40px);min-height:0;}
+}
+/* 中屏（1080p 笔记本）：面板轻度紧凑 */
+@media (min-width:901px) and (max-height:920px){
+  .panel-section{padding:8px 14px;}
+  .panel-section h3{margin-bottom:6px;font-size:12px;}
+  #terrain-desc{min-height:0;margin-bottom:6px;font-size:11px;}
+  .slider-group{margin-bottom:6px;}
+  .radio-opt{padding:5px 10px;}
+  .stat-val{font-size:18px;}
+  .btn{padding:7px 12px;}
+  #loss-canvas{height:110px;}
+  .toggle-row{margin-bottom:6px;}
+  .speed-btn{padding:6px 10px;}
+}
+/* 小屏（1366x768 笔记本）：面板进一步紧凑，优化器说明折叠为单行 */
+@media (min-width:901px) and (max-height:850px){
+  .panel-section{padding:6px 12px;}
+  .radio-opt{gap:6px;padding:4px 8px;}
+  .radio-desc{display:none;}
+  .action-btns{gap:6px;margin-top:6px;}
+  #loss-canvas{height:100px;}
+  .stats-grid{gap:6px;}
+  .terrain-btn{padding:5px 4px;}
+}
+</style>
+</head>
+<body>
+<!-- ===== Course Nav (audit fix) ===== -->
+<nav style="position:sticky;top:0;z-index:999;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px;background:rgba(11,11,20,0.92);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.8rem;">
+<a href="../index.html" style="color:#22d3ee;text-decoration:none;white-space:nowrap;font-weight:600;">🏠 总览</a>
+<div style="display:flex;gap:8px;align-items:center;"><a href="lesson2-timeline.html" style="color:#d0d0dc;text-decoration:none;">◀ 上一课</a><span style="color:#3a3a55;">·</span><a href="lesson4-neural-network.html" style="color:#d0d0dc;text-decoration:none;">下一课 ▶</a></div>
+</nav>
+
+<div id="app">
+  <div id="canvas-container">
+    <div id="info-overlay"></div>
+    <div id="webgl-fallback" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text2);z-index:100">
+      <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+      <div style="font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px">您的浏览器不支持 WebGL</div>
+      <div style="font-size:13px">请使用 Chrome、Edge、Safari 或 Firefox 打开此页面</div>
+    </div>
+    <div id="click-hint">👆 点击地形设置起点位置</div>
+    <div id="legend">
+      <span>高</span><div class="legend-bar"></div><span>低</span>
+    </div>
+    <div id="view-buttons">
+      <button class="view-btn active" data-view="perspective">🔮 透视</button>
+      <button class="view-btn" data-view="top">🔽 俯视</button>
+      <button class="view-btn" data-view="side">👈 侧面</button>
+      <button class="view-btn" data-view="front">👀 正面</button>
+    </div>
+  </div>
+  <button id="panel-toggle" title="收起面板">⚙ 控制面板</button>
+  <div id="panel">
+    <div class="panel-section">
+      <h3>🏔️ 地形选择</h3>
+      <div id="terrain-desc" style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5;min-height:32px">一个完美的碗，只有一个最低点：梯度下降的起点！</div>
+      <div class="terrain-btns">
+        <button class="terrain-btn active" data-terrain="bowl">
+          <span class="terrain-icon">🥣</span>碗形
+        </button>
+        <button class="terrain-btn" data-terrain="doublePeak">
+          <span class="terrain-icon">⛰️</span>双峰
+        </button>
+        <button class="terrain-btn" data-terrain="sawtooth">
+          <span class="terrain-icon">🪚</span>锯齿峡谷
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>🎯 学习率</h3>
+      <div class="slider-group">
+        <div class="slider-label"><span>学习率</span><span class="slider-val" id="lr-val">0.100</span></div>
+        <input type="range" id="lr-slider" min="0" max="100" value="50" step="1">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>⚡ 优化器</h3>
+      <div class="radio-group" id="optimizer-group">
+        <label class="radio-opt">
+          <input type="radio" name="optimizer" value="sgd" checked>
+          <span class="radio-dot"></span>
+          <div><div class="radio-label">SGD</div><div class="radio-desc">普通梯度下降，每次沿最陡方向下降</div></div>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="optimizer" value="momentum">
+          <span class="radio-dot"></span>
+          <div><div class="radio-label">Momentum 动量</div><div class="radio-desc">积累速度，像滚雪球一样加速下坡</div></div>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="optimizer" value="adam">
+          <span class="radio-dot"></span>
+          <div><div class="radio-label">Adam 自适应</div><div class="radio-desc">自动调整每个方向的学习率，最智能</div></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>🎮 控制</h3>
+      <div class="action-btns">
+        <button class="btn btn-primary" id="btn-start">▶ 开始训练</button>
+        <button class="btn btn-step" id="btn-step">⏭ 单步</button>
+      </div>
+      <div class="action-btns" style="margin-top:8px">
+        <button class="btn btn-pause" id="btn-pause" disabled>⏸ 暂停</button>
+        <button class="btn btn-secondary" id="btn-reset">🔄 重置</button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="slider-label"><span>动画速度</span></div>
+        <div class="speed-opts" id="speed-group">
+          <button class="speed-btn" data-speed="1">1x</button>
+          <button class="speed-btn active" data-speed="3">3x</button>
+          <button class="speed-btn" data-speed="6">6x</button>
+          <button class="speed-btn" data-speed="12">12x</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>📊 训练状态</h3>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-val" id="stat-step">0</div><div class="stat-label">步数</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-dist">0.00</div><div class="stat-label">总距离</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-loss">--</div><div class="stat-label">当前 loss</div></div>
+        <div class="stat-item"><div class="stat-val" id="stat-grad">--</div><div class="stat-label">梯度大小</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="toggle-row">
+          <span class="toggle-label">🏆 竞赛模式</span>
+          <div class="toggle-switch" id="comp-toggle"></div>
+        </div>
+        <div class="comp-result" id="comp-result"></div>
+        <div id="comp-timer" style="font-size:12px;color:var(--text2);text-align:center;display:none">
+          ⏱ <span id="timer-val">0.0</span>秒
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>📈 Loss 曲线</h3>
+      <div id="loss-container">
+        <canvas id="loss-canvas"></canvas>
+        <div class="loss-legend">
+          <span><span class="loss-dot" style="background:#ffcc00"></span>当前</span>
+          <span id="loss-prev-legend" style="display:none"><span class="loss-dot" style="background:rgba(100,100,255,0.5)"></span>上次</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+//  GRADIENT DESCENT SANDBOX：AI 夏令营 Lesson 3
+// ============================================================
+
+const container = document.getElementById('canvas-container');
+
+// ── Terrain Definitions ────────────────────────────────────
+const TERRAIN_SIZE = 10;
+const GRID_RES = 100;
+const H = 0.01; // finite difference step
+
+const terrains = {
+  bowl: {
+    name: '碗形',
+    fn: (x, z) => 0.2 * (x * x + z * z),
+    globalMin: [0, 0],
+    minVal: 0,
+    threshold: 0.02,
+    desc: '一个完美的碗，只有一个最低点：梯度下降的起点！'
+  },
+  doublePeak: {
+    name: '双峰',
+    fn: (x, z) => {
+      const d1 = (x + 1.5) * (x + 1.5) + (z + 1.5) * (z + 1.5);
+      const d2 = (x - 1.5) * (x - 1.5) + (z - 1.5) * (z - 1.5);
+      return -(Math.exp(-d1 / 2) + 1.8 * Math.exp(-d2 / 2)) * 2.5;
+    },
+    globalMin: [1.5, 1.5],
+    minVal: null, // computed
+    threshold: null,
+    desc: '两个山谷！一个深一个浅：梯度下降能找到最深的那个吗？'
+  },
+  sawtooth: {
+    name: '锯齿峡谷',
+    fn: (x, z) => 0.08 * x * x + 0.4 * Math.sin(4 * Math.PI * x) + 0.25 * z * z,
+    globalMin: [-0.12, 0],
+    minVal: null,
+    threshold: null,
+    desc: '峡谷里有很多小坑，梯度下降可能被困在局部最低点！'
+  }
+};
+
+// Compute min values for non-trivial terrains
+terrains.doublePeak.minVal = terrains.doublePeak.fn(1.5, 1.5);
+terrains.doublePeak.threshold = terrains.doublePeak.minVal + 0.15;
+terrains.sawtooth.minVal = terrains.sawtooth.fn(-0.12, 0);
+terrains.sawtooth.threshold = terrains.sawtooth.minVal + 0.05;
+
+// ── State ──────────────────────────────────────────────────
+let state = {
+  terrain: 'bowl',
+  lr: 0.1,
+  optimizer: 'sgd',
+  ballX: 2.5,
+  ballZ: 2.5,
+  running: false,
+  paused: false,
+  stepCount: 0,
+  totalDist: 0,
+  lossHistory: [],
+  prevLossHistory: null,
+  trailPoints: [],
+  trailColors: [],
+  competition: false,
+  compStarted: false,
+  compDone: false,
+  compTime: 0,
+  animSpeed: 3,
+  // optimizer state
+  velX: 0, velZ: 0,
+  mX: 0, mZ: 0,
+  vX: 0, vZ: 0,
+  adamT: 0,
+  // stuck detection
+  stuckCounter: 0,
+  bestLoss: Infinity,
+};
+
+// ── Three.js Setup ─────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0f0f1a');
+scene.fog = new THREE.Fog('#0f0f1a', 15, 35);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 50);
+camera.position.set(8, 7, 9);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight('#334466', 0.7);
+scene.add(ambientLight);
+const sunLight = new THREE.DirectionalLight('#ffffff', 1.0);
+sunLight.position.set(8, 15, 5);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 50;
+sunLight.shadow.camera.left = -10;
+sunLight.shadow.camera.right = 10;
+sunLight.shadow.camera.top = 10;
+sunLight.shadow.camera.bottom = -10;
+sunLight.shadow.bias = -0.0001;
+scene.add(sunLight);
+const fillLight = new THREE.DirectionalLight('#8899cc', 0.4);
+fillLight.position.set(-3, 2, -2);
+scene.add(fillLight);
+
+// Grid on XZ plane
+const gridHelper = new THREE.GridHelper(TERRAIN_SIZE, 20, '#334466', '#1a1a35');
+gridHelper.position.y = -0.01;
+scene.add(gridHelper);
+
+// ── Height → Color ────────────────────────────────────────
+function heightToColor(h, minH, maxH) {
+  const t = Math.max(0, Math.min(1, (h - minH) / (maxH - minH || 1)));
+  // Blue (0.6) → Green (0.35) → Yellow (0.15) → Red (0.0)
+  const hue = 0.6 - t * 0.6;
+  const sat = 0.75 + t * 0.15;
+  const light = 0.35 + t * 0.2;
+  return new THREE.Color().setHSL(hue, sat, light);
+}
+
+// ── Terrain Mesh ──────────────────────────────────────────
+let terrainMesh = null;
+let terrainMinH = 0, terrainMaxH = 1;
+
+function getHeight(x, z) {
+  return terrains[state.terrain].fn(x, z);
+}
+
+function gradientAt(x, z) {
+  const f = getHeight;
+  const dx = (f(x + H, z) - f(x - H, z)) / (2 * H);
+  const dz = (f(x, z + H) - f(x, z - H)) / (2 * H);
+  return [dx, dz];
+}
+
+function buildTerrain() {
+  if (terrainMesh) scene.remove(terrainMesh);
+
+  const fn = terrains[state.terrain].fn;
+  const n = GRID_RES + 1;
+  const positions = new Float32Array(n * n * 3);
+  const colorArr = new Float32Array(n * n * 3);
+  const indices = [];
+
+  // First pass: compute min/max height
+  let minH = Infinity, maxH = -Infinity;
+  for (let iz = 0; iz < n; iz++) {
+    for (let ix = 0; ix < n; ix++) {
+      const x = (ix / GRID_RES - 0.5) * TERRAIN_SIZE;
+      const z = (iz / GRID_RES - 0.5) * TERRAIN_SIZE;
+      const y = fn(x, z);
+      if (y < minH) minH = y;
+      if (y > maxH) maxH = y;
+    }
+  }
+  terrainMinH = minH;
+  terrainMaxH = maxH;
+
+  // Second pass: build geometry
+  for (let iz = 0; iz < n; iz++) {
+    for (let ix = 0; ix < n; ix++) {
+      const i = iz * n + ix;
+      const x = (ix / GRID_RES - 0.5) * TERRAIN_SIZE;
+      const z = (iz / GRID_RES - 0.5) * TERRAIN_SIZE;
+      const y = fn(x, z);
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      const c = heightToColor(y, minH, maxH);
+      colorArr[i * 3] = c.r;
+      colorArr[i * 3 + 1] = c.g;
+      colorArr[i * 3 + 2] = c.b;
+    }
+  }
+
+  // Indices
+  for (let iz = 0; iz < GRID_RES; iz++) {
+    for (let ix = 0; ix < GRID_RES; ix++) {
+      const a = iz * n + ix;
+      const b = a + 1;
+      const c = a + n;
+      const d = c + 1;
+      indices.push(a, b, d);
+      indices.push(a, d, c);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colorArr, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+
+  const mat = new THREE.MeshPhongMaterial({
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    shininess: 25,
+    specular: '#111122',
+    flatShading: false,
+  });
+
+  terrainMesh = new THREE.Mesh(geo, mat);
+  terrainMesh.castShadow = true;
+  terrainMesh.receiveShadow = true;
+  terrainMesh.name = 'terrain';
+  scene.add(terrainMesh);
+}
+
+// ── Ball ───────────────────────────────────────────────────
+const BALL_RADIUS = 0.18;
+let ballMesh, ballGlow, ballGroup;
+
+function buildBall() {
+  if (ballGroup) scene.remove(ballGroup);
+  ballGroup = new THREE.Group();
+
+  // Main ball
+  const ballGeo = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
+  const ballMat = new THREE.MeshStandardMaterial({
+    color: '#ffcc00',
+    emissive: '#ff8800',
+    emissiveIntensity: 0.6,
+    roughness: 0.2,
+    metalness: 0.3,
+  });
+  ballMesh = new THREE.Mesh(ballGeo, ballMat);
+  ballMesh.castShadow = true;
+  ballGroup.add(ballMesh);
+
+  // Glow
+  const glowGeo = new THREE.SphereGeometry(BALL_RADIUS * 1.5, 32, 32);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: '#ffcc00',
+    transparent: true,
+    opacity: 0.25,
+    depthWrite: false,
+  });
+  ballGlow = new THREE.Mesh(glowGeo, glowMat);
+  ballGroup.add(ballGlow);
+
+  // Position
+  const y = getHeight(state.ballX, state.ballZ);
+  ballGroup.position.set(state.ballX, y + BALL_RADIUS, state.ballZ);
+  scene.add(ballGroup);
+
+  // Start marker ring
+  updateStartMarker();
+}
+
+// ── Start Marker ──────────────────────────────────────────
+let startMarker = null;
+function updateStartMarker() {
+  if (startMarker) scene.remove(startMarker);
+  const ringGeo = new THREE.TorusGeometry(0.25, 0.04, 16, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7, depthTest: true });
+  startMarker = new THREE.Mesh(ringGeo, ringMat);
+  const y = getHeight(state.ballX, state.ballZ);
+  startMarker.position.set(state.ballX, y + 0.05, state.ballZ);
+  startMarker.rotation.x = -Math.PI / 2;
+  scene.add(startMarker);
+}
+
+// ── Trail ──────────────────────────────────────────────────
+const MAX_TRAIL_POINTS = 500;
+let trailLine = null;
+
+function buildTrail() {
+  if (trailLine) {
+    scene.remove(trailLine);
+    if (trailLine.geometry) trailLine.geometry.dispose();
+    if (trailLine.material) trailLine.material.dispose();
+  }
+  state.trailPoints = [];
+  state.trailColors = [];
+
+  // Initialize with starting position
+  const y = getHeight(state.ballX, state.ballZ);
+  state.trailPoints.push(state.ballX, y + 0.08, state.ballZ);
+  state.trailColors.push(0, 1, 1); // cyan start
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(state.trailPoints, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(state.trailColors, 3));
+
+  const mat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    linewidth: 1,
+    transparent: true,
+    opacity: 0.85,
+    depthTest: true,
+  });
+
+  trailLine = new THREE.Line(geo, mat);
+  scene.add(trailLine);
+}
+
+function addTrailPoint(x, y, z) {
+  const surfaceY = getHeight(x, z);
+  state.trailPoints.push(x, surfaceY + 0.08, z);
+
+  // Color: gradient cyan→magenta based on position in trail
+  const n = state.trailPoints.length / 3;
+  const t = Math.min(n / MAX_TRAIL_POINTS, 1);
+  // Cyan (0,1,1) → White (1,1,1) → Magenta (1,0,1)
+  if (t < 0.5) {
+    const s = t * 2;
+    state.trailColors.push(s, 1, 1); // cyan → white
+  } else {
+    const s = (t - 0.5) * 2;
+    state.trailColors.push(1, 1 - s, 1); // white → magenta
+  }
+
+  // Limit trail length
+  while (state.trailPoints.length / 3 > MAX_TRAIL_POINTS) {
+    state.trailPoints.splice(0, 3);
+    state.trailColors.splice(0, 3);
+  }
+
+  // Update geometry
+  trailLine.geometry.setAttribute('position', new THREE.Float32BufferAttribute(state.trailPoints, 3));
+  trailLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(state.trailColors, 3));
+  trailLine.geometry.setDrawRange(0, state.trailPoints.length / 3);
+}
+
+// ── Raycaster ──────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function getClickPosition(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObject(terrainMesh);
+  if (intersects.length > 0) {
+    return { x: intersects[0].point.x, z: intersects[0].point.z };
+  }
+  return null;
+}
+
+// ── Orbit Controls ─────────────────────────────────────────
+let orbit = {
+  theta: Math.PI / 4,
+  phi: Math.PI / 3.5,
+  radius: 11,
+  target: new THREE.Vector3(0, 1, 0),
+};
+let isDragging = false;
+let isPanning = false;
+let prevMouse = { x: 0, y: 0 };
+let pinchStartDist = 0;
+let pinchStartRadius = 0;
+
+function updateCamera() {
+  const sp = orbit;
+  camera.position.set(
+    sp.target.x + sp.radius * Math.sin(sp.phi) * Math.cos(sp.theta),
+    sp.target.y + sp.radius * Math.cos(sp.phi),
+    sp.target.z + sp.radius * Math.sin(sp.phi) * Math.sin(sp.theta)
+  );
+  camera.lookAt(sp.target);
+}
+
+function setCameraView(view) {
+  switch (view) {
+    case 'perspective':
+      orbit.theta = Math.PI / 4; orbit.phi = Math.PI / 3.5; orbit.radius = 11;
+      break;
+    case 'top':
+      orbit.theta = 0; orbit.phi = 0.05; orbit.radius = 11;
+      break;
+    case 'side':
+      orbit.theta = -Math.PI / 2; orbit.phi = Math.PI / 2.2; orbit.radius = 11;
+      break;
+    case 'front':
+      orbit.theta = 0; orbit.phi = Math.PI / 2.2; orbit.radius = 11;
+      break;
+  }
+  updateCamera();
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-view="${view}"]`)?.classList.add('active');
+}
+
+// Mouse events
+container.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  if (e.button === 0) { isDragging = true; }
+  if (e.button === 2) { isPanning = true; }
+  prevMouse.x = e.clientX;
+  prevMouse.y = e.clientY;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    orbit.theta -= (e.clientX - prevMouse.x) * 0.005;
+    orbit.phi -= (e.clientY - prevMouse.y) * 0.005;
+    orbit.phi = Math.max(0.05, Math.min(Math.PI / 2, orbit.phi));
+    updateCamera();
+  }
+  if (isPanning) {
+    const dx = (e.clientX - prevMouse.x) * 0.01;
+    const dz = (e.clientY - prevMouse.y) * 0.01;
+    const right = new THREE.Vector3();
+    camera.getWorldDirection(right);
+    right.crossVectors(camera.up, right).normalize();
+    const forward = new THREE.Vector3().copy(camera.up).multiplyScalar(-1);
+    orbit.target.add(right.multiplyScalar(dx)).add(forward.multiplyScalar(dz));
+    updateCamera();
+  }
+  prevMouse.x = e.clientX;
+  prevMouse.y = e.clientY;
+});
+
+window.addEventListener('mouseup', () => { isDragging = false; isPanning = false; });
+container.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  orbit.radius *= (e.deltaY > 0 ? 1.05 : 0.95);
+  orbit.radius = Math.max(3, Math.min(25, orbit.radius));
+  updateCamera();
+}, { passive: false });
+container.addEventListener('contextmenu', e => e.preventDefault());
+
+// Touch events (iPad)
+container.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    prevMouse.x = e.touches[0].clientX;
+    prevMouse.y = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    isPanning = true;
+    pinchStartDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    pinchStartRadius = orbit.radius;
+    prevMouse.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    prevMouse.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  }
+}, { passive: false });
+
+container.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (isDragging && e.touches.length === 1) {
+    orbit.theta -= (e.touches[0].clientX - prevMouse.x) * 0.005;
+    orbit.phi -= (e.touches[0].clientY - prevMouse.y) * 0.005;
+    orbit.phi = Math.max(0.05, Math.min(Math.PI / 2, orbit.phi));
+    updateCamera();
+  } else if (isPanning && e.touches.length === 2) {
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    orbit.radius = pinchStartRadius * (pinchStartDist / dist);
+    orbit.radius = Math.max(3, Math.min(25, orbit.radius));
+    const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    const dx = (mx - prevMouse.x) * 0.01;
+    const dz = (my - prevMouse.y) * 0.01;
+    const right = new THREE.Vector3().copy(camera.up).cross(
+      new THREE.Vector3().subVectors(camera.position, orbit.target).normalize()
+    ).normalize();
+    const forward = new THREE.Vector3().copy(camera.up).multiplyScalar(-1);
+    orbit.target.add(right.multiplyScalar(-dx)).add(forward.multiplyScalar(dz));
+    updateCamera();
+    prevMouse.x = mx;
+    prevMouse.y = my;
+  }
+}, { passive: false });
+
+container.addEventListener('touchend', () => { isDragging = false; isPanning = false; });
+
+// Click to place ball
+container.addEventListener('click', (e) => {
+  if (state.running) return;
+  // Ignore if it was a drag
+  const dx = Math.abs(e.clientX - prevMouse.x);
+  const dy = Math.abs(e.clientY - prevMouse.y);
+  if (dx > 3 || dy > 3) return;
+
+  const pos = getClickPosition(e);
+  if (pos) {
+    state.ballX = pos.x;
+    state.ballZ = pos.z;
+    const y = getHeight(state.ballX, state.ballZ);
+    ballGroup.position.set(state.ballX, y + BALL_RADIUS, state.ballZ);
+    updateStartMarker();
+    buildTrail();
+    updateStats();
+    updateClickHint();
+  }
+});
+
+// ── Optimizer Step ────────────────────────────────────────
+function optimizerStep(gradX, gradZ) {
+  switch (state.optimizer) {
+    case 'sgd':
+      return { dx: gradX, dz: gradZ };
+
+    case 'momentum': {
+      const beta = 0.9;
+      state.velX = beta * state.velX + (1 - beta) * gradX;
+      state.velZ = beta * state.velZ + (1 - beta) * gradZ;
+      return { dx: state.velX, dz: state.velZ };
+    }
+
+    case 'adam': {
+      const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+      state.adamT++;
+      state.mX = b1 * state.mX + (1 - b1) * gradX;
+      state.mZ = b1 * state.mZ + (1 - b1) * gradZ;
+      state.vX = b2 * state.vX + (1 - b2) * gradX * gradX;
+      state.vZ = b2 * state.vZ + (1 - b2) * gradZ * gradZ;
+      const mHatX = state.mX / (1 - Math.pow(b1, state.adamT));
+      const mHatZ = state.mZ / (1 - Math.pow(b1, state.adamT));
+      const vHatX = state.vX / (1 - Math.pow(b2, state.adamT));
+      const vHatZ = state.vZ / (1 - Math.pow(b2, state.adamT));
+      return {
+        dx: mHatX / (Math.sqrt(vHatX) + eps),
+        dz: mHatZ / (Math.sqrt(vHatZ) + eps)
+      };
+    }
+
+    default:
+      return { dx: gradX, dz: gradZ };
+  }
+}
+
+// ── Gradient Descent Step ─────────────────────────────────
+const BOUNDS = TERRAIN_SIZE / 2;
+
+function doOneStep() {
+  if (state.compDone) return;
+
+  const [gradX, gradZ] = gradientAt(state.ballX, state.ballZ);
+  const opt = optimizerStep(gradX, gradZ);
+
+  const newX = state.ballX - state.lr * opt.dx;
+  const newZ = state.ballZ - state.lr * opt.dz;
+
+  // Check if ball flies off
+  if (Math.abs(newX) > BOUNDS + 1 || Math.abs(newZ) > BOUNDS + 1) {
+    stopTraining();
+    showToast('学习率太大了！球飞出去了！💨', 'warn');
+    return;
+  }
+
+  // Clamp to bounds
+  const clampedX = Math.max(-BOUNDS, Math.min(BOUNDS, newX));
+  const clampedZ = Math.max(-BOUNDS, Math.min(BOUNDS, newZ));
+
+  // Update distance
+  const dist = Math.sqrt((clampedX - state.ballX) ** 2 + (clampedZ - state.ballZ) ** 2);
+  state.totalDist += dist;
+
+  // Update position
+  state.ballX = clampedX;
+  state.ballZ = clampedZ;
+  state.stepCount++;
+
+  // Record loss
+  const currentLoss = getHeight(state.ballX, state.ballZ);
+  state.lossHistory.push(currentLoss);
+  addTrailPoint(state.ballX, 0, state.ballZ);
+  updateStats();
+  updateLossCurve();
+
+  // Animate ball
+  const surfY = getHeight(state.ballX, state.ballZ);
+  ballGroup.position.set(state.ballX, surfY + BALL_RADIUS, state.ballZ);
+
+  // Competition check
+  if (state.competition && state.compStarted && !state.compDone) {
+    const threshold = terrains[state.terrain].threshold;
+    if (currentLoss <= threshold) {
+      state.compDone = true;
+      state.compTime = (Date.now() - state.compStartTime) / 1000;
+      stopTraining();
+      showToast(`🎉 到达谷底！用了 ${state.stepCount} 步，${state.compTime.toFixed(1)} 秒！`, 'success');
+      showCompResult('win', `🏆 最快到达谷底！\n${state.stepCount} 步 · ${state.compTime.toFixed(1)} 秒`);
+      return;
+    }
+  }
+
+  // Check convergence (non-competition)
+  if (!state.competition && currentLoss < terrains[state.terrain].threshold && state.stepCount > 5) {
+    stopTraining();
+    showToast(`🎉 到达谷底！用了 ${state.stepCount} 步！`, 'success');
+  }
+
+  // Stuck detection
+  if (currentLoss < state.bestLoss - 0.0001) {
+    state.bestLoss = currentLoss;
+    state.stuckCounter = 0;
+  } else {
+    state.stuckCounter++;
+  }
+
+  if (state.stuckCounter >= 30) {
+    if (state.competition) {
+      stopTraining();
+      showToast('你卡住了！试试换个学习率？🔧', 'warn');
+      showCompResult('stuck', '😰 卡住了！试试增大学习率或切换优化器？');
+    } else {
+      showToast('好像卡住了！试试增大学习率或切换优化器？💡', 'warn');
+      state.stuckCounter = 0; // only show once per stuck period
+    }
+  }
+}
+
+// ── Animation Loop ────────────────────────────────────────
+let animFrameId;
+let stepAccum = 0;
+const STEP_INTERVAL_BASE = 0.5; // base seconds between steps at 1x
+
+let lastTimestamp = 0;
+function animate(timestamp) {
+  animFrameId = requestAnimationFrame(animate);
+  if (!lastTimestamp) lastTimestamp = timestamp;
+
+  // Auto-step when running
+  if (state.running && !state.paused && lastTimestamp) {
+    const delta = (timestamp - lastTimestamp) / 1000;
+    const interval = STEP_INTERVAL_BASE / state.animSpeed;
+    stepAccum += delta;
+    if (stepAccum > interval * 5) stepAccum = interval * 5; // cap if tab was hidden
+    while (stepAccum >= interval) {
+      stepAccum -= interval;
+      doOneStep();
+      if (!state.running) break;
+    }
+  }
+
+  // Ball glow pulse
+  if (ballGlow) {
+    const pulse = 1 + 0.15 * Math.sin(Date.now() * 0.005);
+    ballGlow.scale.setScalar(pulse);
+    ballGlow.material.opacity = 0.2 + 0.08 * Math.sin(Date.now() * 0.005);
+  }
+
+  // Comp timer
+  if (state.competition && state.compStarted && !state.compDone && state.running) {
+    const elapsed = (Date.now() - state.compStartTime) / 1000;
+    document.getElementById('timer-val').textContent = elapsed.toFixed(1);
+  }
+
+  renderer.render(scene, camera);
+  lastTimestamp = timestamp;
+}
+
+// ── Training Controls ─────────────────────────────────────
+function startTraining() {
+  if (state.running && !state.paused) return;
+
+  if (!state.running) {
+    // Fresh start
+    state.running = true;
+    state.paused = false;
+    state.stepCount = 0;
+    state.totalDist = 0;
+    state.lossHistory = [];
+    state.trailPoints = [];
+    state.trailColors = [];
+    state.stuckCounter = 0;
+    state.bestLoss = Infinity;
+    state.compDone = false;
+    // Reset optimizer state
+    state.velX = 0; state.velZ = 0;
+    state.mX = 0; state.mZ = 0;
+    state.vX = 0; state.vZ = 0;
+    state.adamT = 0;
+
+    // Save previous loss for overlay
+    if (state.prevLossHistory && state.prevLossHistory.length > 0) {
+      // keep it
+    }
+
+    buildTrail();
+    updateLossCurve();
+
+    // Competition timer
+    if (state.competition) {
+      state.compStarted = true;
+      state.compStartTime = Date.now();
+      document.getElementById('comp-timer').style.display = 'block';
+      document.getElementById('timer-val').textContent = '0.0';
+      document.getElementById('comp-result').classList.remove('show', 'win', 'stuck');
+      document.getElementById('comp-result').textContent = '';
+    }
+
+    // Record initial loss
+    const initLoss = getHeight(state.ballX, state.ballZ);
+    state.lossHistory.push(initLoss);
+    state.bestLoss = initLoss;
+  } else {
+    state.paused = false;
+  }
+
+  updateUIState();
+  updateClickHint();
+}
+
+function stopTraining() {
+  state.running = false;
+  state.paused = false;
+  stepAccum = 0;
+
+  // Save loss history for overlay
+  if (state.lossHistory.length > 0) {
+    state.prevLossHistory = [...state.lossHistory];
+    document.getElementById('loss-prev-legend').style.display = 'inline';
+  }
+
+  updateUIState();
+}
+
+function pauseTraining() {
+  state.paused = true;
+  updateUIState();
+}
+
+function resetAll() {
+  stopTraining();
+  state.ballX = 0;
+  state.ballZ = 0;
+  state.stepCount = 0;
+  state.totalDist = 0;
+  state.lossHistory = [];
+  state.prevLossHistory = null;
+  state.stuckCounter = 0;
+  state.bestLoss = Infinity;
+  state.compDone = false;
+  state.compStarted = false;
+  state.compTime = 0;
+  state.velX = 0; state.velZ = 0;
+  state.mX = 0; state.mZ = 0;
+  state.vX = 0; state.vZ = 0;
+  state.adamT = 0;
+  document.getElementById('loss-prev-legend').style.display = 'none';
+  document.getElementById('comp-timer').style.display = 'none';
+  document.getElementById('comp-result').classList.remove('show', 'win', 'stuck');
+  document.getElementById('comp-result').textContent = '';
+
+  const y = getHeight(state.ballX, state.ballZ);
+  ballGroup.position.set(state.ballX, y + BALL_RADIUS, state.ballZ);
+  updateStartMarker();
+  buildTrail();
+  updateStats();
+  updateLossCurve();
+  updateUIState();
+  updateClickHint();
+  clearToasts();
+}
+
+function singleStep() {
+  if (state.running) return;
+  if (state.compDone) return;
+
+  if (state.stepCount === 0) {
+    // Init
+    state.stuckCounter = 0;
+    state.bestLoss = Infinity;
+    state.velX = 0; state.velZ = 0;
+    state.mX = 0; state.mZ = 0;
+    state.vX = 0; state.vZ = 0;
+    state.adamT = 0;
+    state.lossHistory = [];
+    state.trailPoints = [];
+    state.trailColors = [];
+    buildTrail();
+    const initLoss = getHeight(state.ballX, state.ballZ);
+    state.lossHistory.push(initLoss);
+    state.bestLoss = initLoss;
+    state.totalDist = 0;
+    if (state.competition) {
+      state.compStarted = true;
+      state.compStartTime = Date.now();
+      document.getElementById('comp-timer').style.display = 'block';
+    }
+  }
+
+  doOneStep();
+  updateLossCurve();
+  updateUIState();
+  updateClickHint();
+}
+
+function updateUIState() {
+  const btn = document.getElementById('btn-start');
+  if (state.running && !state.paused) {
+    btn.textContent = '⏸ 暂停';
+  } else if (state.running && state.paused) {
+    btn.textContent = '▶ 继续';
+  } else {
+    btn.textContent = '▶ 开始训练';
+  }
+  document.getElementById('btn-pause').disabled = !state.running || state.paused;
+  document.getElementById('btn-step').disabled = state.running;
+  document.getElementById('lr-slider').disabled = state.running;
+  document.querySelectorAll('.terrain-btn').forEach(b => b.disabled = state.running);
+  document.querySelectorAll('#optimizer-group input').forEach(r => r.disabled = state.running);
+  document.getElementById('comp-toggle').style.pointerEvents = state.running ? 'none' : 'auto';
+}
+
+function updateClickHint() {
+  const hint = document.getElementById('click-hint');
+  if (state.running) {
+    hint.style.opacity = '0';
+  } else {
+    hint.style.opacity = '1';
+    hint.textContent = '👆 点击地形设置起点位置  |  当前起点: (' + state.ballX.toFixed(1) + ', ' + state.ballZ.toFixed(1) + ')';
+  }
+}
+
+function showCompResult(type, msg) {
+  const el = document.getElementById('comp-result');
+  el.textContent = msg;
+  el.className = 'comp-result show ' + type;
+}
+
+// ── Stats ──────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-step').textContent = state.stepCount;
+  document.getElementById('stat-dist').textContent = state.totalDist.toFixed(2);
+  const loss = getHeight(state.ballX, state.ballZ);
+  document.getElementById('stat-loss').textContent = loss.toFixed(4);
+  const [gx, gz] = gradientAt(state.ballX, state.ballZ);
+  const gradMag = Math.sqrt(gx * gx + gz * gz);
+  document.getElementById('stat-grad').textContent = gradMag.toFixed(4);
+}
+
+// ── Loss Curve ────────────────────────────────────────────
+function updateLossCurve() {
+  const canvas = document.getElementById('loss-canvas');
+  const container = document.getElementById('loss-container');
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  const rect = container.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 140 * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = '140px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = 140;
+  const pad = { top: 16, right: 16, bottom: 28, left: 48 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#16213e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Compute range
+  let allLosses = [...state.lossHistory];
+  if (state.prevLossHistory) allLosses = allLosses.concat(state.prevLossHistory);
+  if (allLosses.length === 0) {
+    ctx.fillStyle = '#a0a0b0';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('开始训练后显示 Loss 曲线', W / 2, H / 2);
+    return;
+  }
+
+  const minL = Math.min(...allLosses);
+  const maxL = Math.max(...allLosses);
+  const range = maxL - minL || 1;
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  function toX(i) { return pad.left + (i / Math.max(allLosses.length - 1, 1)) * plotW; }
+  function toY(v) { return pad.top + plotH - ((v - minL) / range) * plotH; }
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (plotH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    const val = minL + range * (1 - i / 4);
+    ctx.fillStyle = '#a0a0b0';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(2), pad.left - 6, y + 3);
+  }
+
+  // X axis label
+  ctx.fillStyle = '#a0a0b0';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('步数', W / 2, H - 4);
+  ctx.fillText('0', pad.left, H - 4);
+  ctx.fillText(String(allLosses.length - 1), W - pad.right, H - 4);
+
+  // Previous run (if exists)
+  if (state.prevLossHistory && state.prevLossHistory.length > 1) {
+    ctx.strokeStyle = 'rgba(100,100,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    for (let i = 0; i < state.prevLossHistory.length; i++) {
+      const x = toX(i), y = toY(state.prevLossHistory[i]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Current run
+  if (state.lossHistory.length > 1) {
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(255,204,0,0.3)';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    for (let i = 0; i < state.lossHistory.length; i++) {
+      const x = toX(i), y = toY(state.lossHistory[i]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Last point dot
+    const lastX = toX(state.lossHistory.length - 1);
+    const lastY = toY(state.lossHistory[state.lossHistory.length - 1]);
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Threshold line (competition)
+  if (state.competition) {
+    const thresh = terrains[state.terrain].threshold;
+    const ty = toY(thresh);
+    ctx.strokeStyle = 'rgba(46,213,115,0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 6]);
+    ctx.beginPath(); ctx.moveTo(pad.left, ty); ctx.lineTo(W - pad.right, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#2ed573';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('目标', W - pad.right + 2, ty + 3);
+  }
+}
+
+// ── Toast Messages ────────────────────────────────────────
+function showToast(msg, type) {
+  const overlay = document.getElementById('info-overlay');
+  // Clear existing
+  overlay.innerHTML = '';
+  const toast = document.createElement('div');
+  toast.className = 'info-toast ' + (type || '');
+  toast.textContent = msg;
+  overlay.appendChild(toast);
+  // Auto-remove
+  setTimeout(() => { if (overlay.contains(toast)) overlay.removeChild(toast); }, 3500);
+}
+
+function clearToasts() {
+  document.getElementById('info-overlay').innerHTML = '';
+}
+
+// ── Event Handlers ────────────────────────────────────────
+// Terrain buttons
+document.querySelectorAll('.terrain-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (state.running) return;
+    document.querySelectorAll('.terrain-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.terrain = btn.dataset.terrain;
+    // Update description
+    document.getElementById('terrain-desc').textContent = terrains[state.terrain].desc;
+    buildTerrain();
+    updateStartMarker();
+    const y = getHeight(state.ballX, state.ballZ);
+    ballGroup.position.set(state.ballX, y + BALL_RADIUS, state.ballZ);
+    buildTrail();
+    updateStats();
+    updateLossCurve();
+    updateClickHint();
+    state.lossHistory = [];
+    state.prevLossHistory = null;
+    document.getElementById('loss-prev-legend').style.display = 'none';
+  });
+});
+
+// LR slider
+const lrSlider = document.getElementById('lr-slider');
+lrSlider.addEventListener('input', () => {
+  const t = parseInt(lrSlider.value) / 100;
+  state.lr = Math.pow(10, t * 4 - 3);
+  document.getElementById('lr-val').textContent = state.lr.toFixed(3);
+});
+
+// Optimizer
+document.querySelectorAll('#optimizer-group input').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (state.running) return;
+    state.optimizer = radio.value;
+  });
+});
+
+// Action buttons
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (state.running && !state.paused) {
+    pauseTraining();
+  } else {
+    startTraining();
+  }
+});
+document.getElementById('btn-pause').addEventListener('click', pauseTraining);
+document.getElementById('btn-reset').addEventListener('click', resetAll);
+document.getElementById('btn-step').addEventListener('click', singleStep);
+
+// Speed buttons
+document.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.animSpeed = parseInt(btn.dataset.speed);
+  });
+});
+
+// Competition toggle
+document.getElementById('comp-toggle').addEventListener('click', function() {
+  if (state.running) return;
+  this.classList.toggle('on');
+  state.competition = this.classList.contains('on');
+  if (!state.competition) {
+    document.getElementById('comp-timer').style.display = 'none';
+    document.getElementById('comp-result').classList.remove('show', 'win', 'stuck');
+    state.compStarted = false;
+    state.compDone = false;
+  }
+});
+
+// View buttons
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => setCameraView(btn.dataset.view));
+});
+
+// Panel toggle (mobile)
+document.getElementById('panel-toggle').addEventListener('click', function() {
+  document.getElementById('panel').classList.toggle('collapsed');
+  this.textContent = document.getElementById('panel').classList.contains('collapsed') ? '⚙ 展开' : '⚙ 控制面板';
+  setTimeout(resizeAll, 350);
+});
+
+// Keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  switch (e.key.toLowerCase()) {
+    case ' ': e.preventDefault(); singleStep(); break;
+    case 'enter': e.preventDefault(); startTraining(); break;
+    case 'p': pauseTraining(); break;
+    case 'r': resetAll(); break;
+    case '1': setCameraView('perspective'); break;
+    case '2': setCameraView('top'); break;
+    case '3': setCameraView('side'); break;
+    case '4': setCameraView('front'); break;
+  }
+});
+
+// ── Resize ────────────────────────────────────────────────
+function resizeAll() {
+  const rect = container.getBoundingClientRect();
+  renderer.setSize(rect.width, rect.height);
+  camera.aspect = rect.width / Math.max(rect.height, 1);
+  camera.updateProjectionMatrix();
+  updateLossCurve();
+}
+
+window.addEventListener('resize', resizeAll);
+
+// ── Init ──────────────────────────────────────────────────
+function init() {
+  // WebGL check
+  const testCanvas = document.createElement('canvas');
+  const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+  if (!gl) {
+    document.getElementById('webgl-fallback').style.display = 'block';
+    document.getElementById('click-hint').style.display = 'none';
+    console.warn('WebGL not supported - 3D rendering unavailable');
+    return;
+  }
+
+  buildTerrain();
+  buildBall();
+  buildTrail();
+  updateCamera();
+  resizeAll();
+  updateStats();
+  updateClickHint();
+  updateLossCurve();
+  document.getElementById('terrain-desc').textContent = terrains[state.terrain].desc;
+  animFrameId = requestAnimationFrame(animate);
+
+  // Keyboard hint
+  console.log('🎮 梯度下降沙盒已就绪\n'
+    + '空格=单步 | 回车=开始/暂停 | P=暂停 | R=重置\n'
+    + '1/2/3/4=视角切换 | 鼠标拖拽=旋转 | 滚轮=缩放\n'
+    + '点击地形=设置起点');
+}
+
+init();
+</script>
+<!-- ===== Feynman Check (audit fix) ===== -->
+<div style="max-width:900px;margin:36px auto 20px;padding:0 16px;">
+<details style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;">
+<summary style="cursor:pointer;padding:14px 16px;font-weight:700;color:#fff;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px;">🎓 讲给弟弟听<span style="color:#888;font-weight:400;font-size:0.78rem;margin-left:auto;">点开看答案提示 ▾</span></summary>
+<div style="padding:0 16px 16px;color:#d0d0dc;font-size:0.9rem;line-height:1.8;">
+<p style="color:#fbbf24;font-weight:600;margin:10px 0 6px;">🤔 现在，把这一课讲给弟弟听：他听懂了，你才算真懂。</p>
+<p>Q：<em>蒙着眼下山，怎么走到谷底？</em></p>
+<p style="color:#8888a8;margin-top:8px;">💡 参考答案提示：每步往最陡的下坡方向走；学习率 = 步子大小（太大跨过谷底，太小太慢）；动量像滚雪球一样加速。</p>
+</div>
+</details>
+</div>
+<!-- ===== Course Flow + Deep Water (upgrade3) ===== -->
+<div style="max-width:900px;margin:28px auto 8px;padding:0 16px;">
+<div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="lesson2-timeline.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#22d3ee;font-size:0.75rem;font-weight:700;">◀ 上一课</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">互动时间线</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">AI 想了 2500 年，最近十年才熟透</div></a><a href="lesson4-neural-network.html" style="flex:1;min-width:200px;text-decoration:none;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);display:block;"><div style="color:#f5b942;font-size:0.75rem;font-weight:700;">下一课 ▶</div><div style="color:#fff;font-size:0.92rem;margin-top:4px;font-weight:700;">神经网络沙盒</div><div style="color:#8888a8;font-size:0.78rem;margin-top:2px;line-height:1.5;">学会靠参数：参数藏在一堆小开关里，叫神经网络</div></a></div>
+<details style="border:1px solid rgba(34,211,238,0.28);border-radius:12px;background:rgba(34,211,238,0.05);margin-top:12px;overflow:hidden;">
+<summary style="cursor:pointer;padding:12px 16px;font-weight:700;color:#22d3ee;font-size:0.92rem;list-style:none;display:flex;align-items:center;gap:8px;">🌊 深水区 · 给牧之<span style="color:#8888a8;font-weight:400;font-size:0.75rem;margin-left:auto;">牧童旁听即可，别让他有压力</span></summary>
+<div style="padding:0 16px 14px;color:#d0d0dc;font-size:0.88rem;line-height:1.7;">
+<p style="margin:10px 0 4px;color:#fff;">蒙眼下山可能停在「局部最低点」而不是真正的谷底：怎么知道自己是全局最优？为什么 Adam 通常比普通下山快？</p>
+<p style="color:#8888a8;font-size:0.75rem;margin:6px 0 0;">👉 家长版详解见 <a href="../guide.html" style="color:#22d3ee;">guide.html 的「12 课速查表」</a></p>
+</div>
+</details>
+</div>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('../sw.js').catch(function(){});});}</script>
+</body>
+</html>
