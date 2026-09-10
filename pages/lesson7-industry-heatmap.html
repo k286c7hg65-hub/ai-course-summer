@@ -259,6 +259,29 @@ body {
 }
 
 </style>
+<style id="sci-guard">/* 科普页兜底（打印 / 无JS / 目录）——由 science-page-standard 注入 */
+@media print{
+  [class*="fadein"],[class*="fade-in"],[class*="fadeIn"],[class*="reveal"],[data-fade],.card,.section{opacity:1!important;transform:none!important;animation:none!important;transition:none!important;}
+  body,html{background:#fff!important;}
+  #sci-toc{display:none!important;}
+  figure,table,pre,.card{break-inside:avoid;}
+  h2,h3{break-after:avoid;}
+}
+#sci-toc{position:fixed;left:14px;bottom:14px;z-index:9998;font:500 13px/1.2 system-ui,-apple-system,"PingFang SC",sans-serif;}
+#sci-toc>button{display:block;border:1px solid currentColor;background:rgba(255,255,255,.86);color:#333;border-radius:999px;padding:8px 13px;cursor:pointer;opacity:.62;backdrop-filter:blur(6px);}
+#sci-toc>button:hover{opacity:1;}
+#sci-toc ol{display:none;margin:8px 0 0;padding:10px 12px 10px 28px;max-height:56vh;overflow:auto;background:rgba(255,255,255,.95);border:1px solid #ccc;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.14);list-style:decimal;}
+#sci-toc.open ol{display:block;}
+#sci-toc ol a{color:#222;text-decoration:none;line-height:1.75;}
+#sci-toc ol a:hover{text-decoration:underline;}
+@media (prefers-color-scheme:dark){
+  #sci-toc>button{background:rgba(20,20,20,.86);color:#eee;border-color:#666;}
+  #sci-toc ol{background:rgba(20,20,20,.95);border-color:#555;}
+  #sci-toc ol a{color:#eee;}
+}
+@media (max-width:640px){#sci-toc{bottom:76px;}}
+</style>
+<noscript><style>[class*="fadein"],[class*="fade-in"],[class*="fadeIn"],[class*="reveal"],[data-fade]{opacity:1!important;transform:none!important;}</style></noscript>
 </head>
 <body>
 <!-- ===== Course Nav (audit fix) ===== -->
@@ -665,6 +688,55 @@ initGame();
   addMsg('ai', '选一个行业（上面点一下），然后问我：AI 正在怎么改变它？');
 })();
 
+</script>
+<script id="sci-guard-js">/* 兜底脚本：脚本报错/观察器失效时，把仍是隐形的正文内容显出来；顺带生成章节目录 */
+(function(){
+  function isFadey(el){
+    var c=(el.className&&typeof el.className==='string')?el.className:'';
+    return /fade|reveal/i.test(c)||el.hasAttribute('data-fade');
+  }
+  function reviveFaded(){
+    var els=document.querySelectorAll('[class*="fade"],[class*="reveal"],[data-fade]'),n=0;
+    for(var i=0;i<els.length;i++){
+      var el=els[i],s=getComputedStyle(el);
+      if(parseFloat(s.opacity)<0.05&&isFadey(el)&&(el.textContent||'').trim().length>25){
+        el.style.opacity='1';el.style.transform='none';el.style.animation='none';n++;
+      }
+    }
+    return n;
+  }
+  window.addEventListener('load',function(){setTimeout(function(){reviveFaded();},2500);});
+  window.addEventListener('beforeprint',function(){
+    var d=document.querySelectorAll('details');
+    for(var i=0;i<d.length;i++){d[i].open=true;}
+    reviveFaded();
+  });
+  function toc(){
+    if(document.getElementById('sci-toc'))return;
+    var hs=document.querySelectorAll('h2'),list=[],i;
+    if(hs.length<4)return;
+    if(document.querySelectorAll('nav a[href^="#"],header a[href^="#"],[class*="nav"] a[href^="#"]').length>=4)return;
+    for(i=0;i<hs.length;i++){
+      var h=hs[i];
+      if(h.closest('nav,header,footer'))continue;
+      if(!h.id){h.id='sec-'+(i+1);}
+      var t=(h.textContent||'').trim().replace(/\s+/g,' ');
+      if(t&&t.length<=40){list.push('<li><a href="#'+h.id+'">'+t.replace(/[<>&]/g,'')+'</a></li>');}
+    }
+    if(list.length<4)return;
+    var box=document.createElement('div');box.id='sci-toc';
+    box.innerHTML='<button type="button" aria-expanded="false">目录 '+list.length+' 节</button><ol>'+list.join('')+'</ol>';
+    document.body.appendChild(box);
+    box.querySelector('button').addEventListener('click',function(){
+      box.classList.toggle('open');
+      this.setAttribute('aria-expanded',box.classList.contains('open')?'true':'false');
+    });
+    box.querySelector('ol').addEventListener('click',function(e){
+      if(e.target.tagName==='A'){box.classList.remove('open');}
+    });
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',toc);}else{toc();}
+})();
 </script>
 </body>
 </html>
